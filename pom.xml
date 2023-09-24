@@ -18,7 +18,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <telegram.bot.version>6.8.0</telegram.bot.version>
+        <telegrambots.version>6.8.0</telegrambots.version>
     </properties>
 
     <dependencies>
@@ -37,13 +37,7 @@
         <dependency>
             <groupId>org.telegram</groupId>
             <artifactId>telegrambots-spring-boot-starter</artifactId>
-            <version>${telegram.bot.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.telegram</groupId>
-            <artifactId>telegrambots-abilities</artifactId>
-            <version>${telegram.bot.version}</version>
+            <version>${telegrambots.version}</version>
         </dependency>
 
     </dependencies>

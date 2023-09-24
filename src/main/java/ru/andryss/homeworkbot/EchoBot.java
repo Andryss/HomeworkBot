@@ -1,38 +1,38 @@
 package ru.andryss.homeworkbot;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.telegram.abilitybots.api.bot.AbilityBot;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
-public class EchoBot extends AbilityBot {
+public class EchoBot extends TelegramLongPollingBot {
 
-    private static final String botToken = System.getenv("BOT_TELEGRAM_API_TOKEN");
-    private static final String botUsername = System.getenv("BOT_TELEGRAM_USERNAME");
-
-    protected EchoBot() {
-        super(botToken, botUsername);
-    }
-
-    @Override
-    public long creatorId() {
-        return 1;
+    public EchoBot(@Value("${BOT_TELEGRAM_API_TOKEN}") String botToken) {
+        super(botToken);
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        super.onUpdateReceived(update);
         if (update.hasMessage() && update.getMessage().hasText()) {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(update.getMessage().getChatId());
             sendMessage.setText(update.getMessage().getText());
             try {
-                sender.execute(sendMessage);
+                execute(sendMessage);
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Value("${BOT_TELEGRAM_USERNAME}")
+    private String botUsername;
+
+    @Override
+    public String getBotUsername() {
+        return botUsername;
     }
 }
