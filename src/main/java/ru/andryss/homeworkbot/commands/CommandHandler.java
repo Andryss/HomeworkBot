@@ -9,7 +9,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public interface CommandHandler {
     CommandInfo getCommandInfo();
     void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException;
-    void onUpdateReceived(Update update) throws TelegramApiException;
+    void onUpdateReceived(Update update, AbsSender sender) throws TelegramApiException;
 
     @Data
     @AllArgsConstructor

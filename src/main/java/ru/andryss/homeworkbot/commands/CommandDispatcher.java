@@ -68,7 +68,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
         if (!userCommand.equals(NO_COMMAND)) {
             try {
-                handlerByCommand.get(userCommand).onUpdateReceived(update);
+                handlerByCommand.get(userCommand).onUpdateReceived(update, this);
             } catch (TelegramApiException e) {
                 onTelegramApiException(update, e);
             }
@@ -88,6 +88,8 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             onUnknownCommandUpdate(update);
             return;
         }
+
+        userToCommand.put(userId, command);
 
         try {
             commandHandler.onCommandReceived(update, this, () -> userToCommand.put(userId, NO_COMMAND));
