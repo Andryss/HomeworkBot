@@ -27,6 +27,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     private final Map<String, CommandHandler> handlerByCommand = new ConcurrentHashMap<>();
     private final Map<Long, String> userToCommand = new ConcurrentHashMap<>();
 
+    private static final String PRIVATE_CHAT_TYPE = "private";
     private static final String HELP_COMMAND = "/help";
     private static final String NO_COMMAND = "";
     private static final String COMMAND_TYPE = "bot_command";
@@ -58,14 +59,13 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (!isPrivateMessage(update)) {
-            onUnknownUpdate(update);
-            return;
+            onUnknownUpdate(update); return;
         }
 
         Message message = update.getMessage();
         Long userId = message.getFrom().getId();
-        String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
 
+        String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
         if (!userCommand.equals(NO_COMMAND)) {
             try {
                 handlerByCommand.get(userCommand).onUpdateReceived(update, this);
@@ -76,14 +76,12 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         }
 
         String command = extractCommand(message);
-
         if (command.equals(NO_COMMAND)) {
             onNoCommandUpdate(update);
             return;
         }
 
         CommandHandler commandHandler = handlerByCommand.get(command);
-
         if (commandHandler == null) {
             onUnknownCommandUpdate(update);
             return;
@@ -99,7 +97,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     }
 
     private boolean isPrivateMessage(Update update) {
-        return update.hasMessage() && update.getMessage().getChat().getType().equals("private");
+        return update.hasMessage() && update.getMessage().getChat().getType().equals(PRIVATE_CHAT_TYPE);
     }
 
     private void onUnknownUpdate(Update update) {
