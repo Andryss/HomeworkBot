@@ -21,6 +21,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public String getUserName(Long id) {
         return userRepository.findById(id).map(UserEntity::getName).orElse(null);
     }
