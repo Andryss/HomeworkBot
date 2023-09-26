@@ -32,8 +32,8 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     private static final String COMMAND_TYPE = "bot_command";
 
     public CommandDispatcher(
-            @Value("${BOT_TELEGRAM_API_TOKEN}") String botToken,
-            @Value("${BOT_TELEGRAM_USERNAME}") String botUsername,
+            @Value("${bot.telegram.api.token}") String botToken,
+            @Value("${bot.telegram.username}") String botUsername,
             @Autowired List<CommandHandler> commandHandlers
     ) {
         super(botToken);
@@ -141,26 +141,22 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
     private static class HelpCommandHandler implements CommandHandler {
 
-        private static final CommandInfo helpInfo = new CommandInfo(HELP_COMMAND, "выводит список всех команд"); // TODO: extract text to some Message class
+        @Getter
+        private final CommandInfo commandInfo = new CommandInfo(HELP_COMMAND, "вывести список всех команд"); // TODO: extract text to some Message class
         private final String helpMessage;
 
         HelpCommandHandler(List<CommandHandler> commandHandlers) {
             this.helpMessage = initHelpMessage(commandHandlers);
         }
 
-        private static String initHelpMessage(List<CommandHandler> commandHandlers) {
+        private String initHelpMessage(List<CommandHandler> commandHandlers) {
             StringBuilder helpMessageBuilder = new StringBuilder();
-            helpMessageBuilder.append(helpInfo.getName()).append(" - ").append(helpInfo.getDescription()).append('\n');
+            helpMessageBuilder.append(commandInfo.getName()).append(" - ").append(commandInfo.getDescription()).append('\n');
             commandHandlers.forEach(handler -> {
                 CommandHandler.CommandInfo info = handler.getCommandInfo();
                 helpMessageBuilder.append(info.getName()).append(" - ").append(info.getDescription()).append('\n');
             });
             return helpMessageBuilder.toString();
-        }
-
-        @Override
-        public CommandInfo getCommandInfo() {
-            return helpInfo;
         }
 
         @Override
@@ -175,7 +171,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         }
 
         @Override
-        public void onUpdateReceived(Update update) {
+        public void onUpdateReceived(Update update, AbsSender sender) {
 
         }
     }
