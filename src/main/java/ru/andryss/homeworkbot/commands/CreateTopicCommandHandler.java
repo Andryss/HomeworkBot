@@ -2,16 +2,18 @@ package ru.andryss.homeworkbot.commands;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 import ru.andryss.homeworkbot.services.LeaderService;
+import ru.andryss.homeworkbot.services.TopicService;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-//@Component
+@Component
 public class CreateTopicCommandHandler implements CommandHandler {
 
     @Getter
@@ -33,25 +35,23 @@ public class CreateTopicCommandHandler implements CommandHandler {
     private final Map<Long, String> userToCreatedTopic = new ConcurrentHashMap<>();
 
     private final LeaderService leaderService;
+    private final TopicService topicService;
 
     @Autowired
-    public CreateTopicCommandHandler(LeaderService leaderService) {
+    public CreateTopicCommandHandler(LeaderService leaderService, TopicService topicService) {
         this.leaderService = leaderService;
+        this.topicService = topicService;
     }
 
     @Override
     public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
         if (!leaderService.isLeader(userId)) {
-            SendMessage message = new SendMessage();
-            message.setChatId(update.getMessage().getChatId());
-            message.setText(NOT_LEADER);
-
-            sender.execute(message);
+            AbsSenderUtils.sendMessage(update, sender, NOT_LEADER);
             return;
         }
 
-        executeAskForTopicName(update, sender);
+        onGetCommand(update, sender);
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
         userToOnExitHandler.put(userId, onExitHandler);
     }
@@ -61,80 +61,51 @@ public class CreateTopicCommandHandler implements CommandHandler {
 
     }
 
-    private void executeAskForTopicName(Update update, AbsSender sender) throws TelegramApiException {
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
-        message.setText(ASK_FOR_TOPIC_NAME);
-
-        sender.execute(message);
+    private void onGetCommand(Update update, AbsSender sender) throws TelegramApiException {
+        AbsSenderUtils.sendMessage(update, sender, ASK_FOR_TOPIC_NAME);
         Long userId = update.getMessage().getFrom().getId();
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
     }
 
-    private void executeAskForConfirmation(Update update, AbsSender sender) throws TelegramApiException {
-        if (!update.getMessage().hasText()) {
-            SendMessage message = new SendMessage();
-            message.setChatId(update.getMessage().getChatId());
-            message.setText(ASK_FOR_RESENDING_TOPIC);
+    private void onGetTopicName(Update update, AbsSender sender) throws TelegramApiException {
+        Long userId = update.getMessage().getFrom().getId();
 
-            sender.execute(message);
-            Long userId = update.getMessage().getFrom().getId();
+        if (!update.getMessage().hasText()) {
+            AbsSenderUtils.sendMessage(update, sender, ASK_FOR_RESENDING_TOPIC);
             userToState.put(userId, WAITING_FOR_TOPIC_NAME);
             return;
         }
 
         String topic = update.getMessage().getText();
-        Long userId = update.getMessage().getFrom().getId();
         userToCreatedTopic.put(userId, topic);
 
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
-        message.setText(String.format(ASK_FOR_CONFIRMATION, topic));
-
-        sender.execute(message);
+        AbsSenderUtils.sendMessage(update, sender, String.format(ASK_FOR_CONFIRMATION, topic));
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
     }
 
-    private void executeConfirmation(Update update, AbsSender sender) throws TelegramApiException {
-        if (!update.getMessage().hasText() || !update.getMessage().getText().equals("да") && !update.getMessage().getText().equals("нет")) {
-            SendMessage message = new SendMessage();
-            message.setChatId(update.getMessage().getChatId());
-            message.setText(ASK_FOR_RESENDING_CONFIRMATION);
+    private void onGetConfirmation(Update update, AbsSender sender) throws TelegramApiException {
+        Long userId = update.getMessage().getFrom().getId();
+        String confirmation = update.getMessage().getText();
 
-            sender.execute(message);
-            Long userId = update.getMessage().getFrom().getId();
+        if (!update.getMessage().hasText() || !confirmation.equals("да") && !confirmation.equals("нет")) {
+            AbsSenderUtils.sendMessage(update, sender, ASK_FOR_RESENDING_CONFIRMATION);
             userToState.put(userId, WAITING_FOR_CONFIRMATION);
             return;
         }
 
-        String confirmation = update.getMessage().getText();
 
-        if (update.getMessage().getText().equals("нет")) {
-            SendMessage message = new SendMessage();
-            message.setChatId(update.getMessage().getChatId());
-            message.setText(CONFIRMATION_FAILURE);
-
-            sender.execute(message);
-            Long userId = update.getMessage().getFrom().getId();
+        if (confirmation.equals("нет")) {
+            AbsSenderUtils.sendMessage(update, sender, CONFIRMATION_FAILURE);
             userToState.remove(userId);
             userToCreatedTopic.remove(userId);
             userToOnExitHandler.remove(userId).run();
             return;
         }
 
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
-        message.setText(CONFIRMATION_SUCCESS);
-
-        sender.execute(message);
-        Long userId = update.getMessage().getFrom().getId();
-        createTopic(userId);
+        topicService.createTopic(userId, userToCreatedTopic.get(userId));
+        AbsSenderUtils.sendMessage(update, sender, CONFIRMATION_SUCCESS);
         userToState.remove(userId);
         userToCreatedTopic.remove(userId);
         userToOnExitHandler.remove(userId).run();
-    }
-
-    private void createTopic(Long userId) {
-
     }
 }

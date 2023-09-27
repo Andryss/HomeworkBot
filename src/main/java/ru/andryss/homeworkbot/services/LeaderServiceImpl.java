@@ -1,12 +1,19 @@
 package ru.andryss.homeworkbot.services;
 
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import ru.andryss.homeworkbot.repositories.UserRepository;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@Service
+@RequiredArgsConstructor
 public class LeaderServiceImpl implements LeaderService {
+
+    private final UserRepository userRepository;
 
     @Value("${group.leaders.telegram.ids}")
     private String leadersTelegramIdsString;
@@ -23,6 +30,6 @@ public class LeaderServiceImpl implements LeaderService {
 
     @Override
     public boolean isLeader(Long userId) {
-        return leadersTelegramIds.contains(userId);
+        return userRepository.existsById(userId) && leadersTelegramIds.contains(userId);
     }
 }
