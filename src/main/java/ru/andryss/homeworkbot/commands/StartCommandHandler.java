@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StartCommandHandler implements CommandHandler {
 
     @Getter
-    private final CommandInfo commandInfo = new CommandInfo("/start", "зарегистрировать пользователя");
+    private final CommandInfo commandInfo = new CommandInfo("/start", "зарегистрировать (переименовать) пользователя");
 
     private static final String ASK_FOR_USERNAME = "Пожалуйста, введите ФИО, так будут подписаны ваши работы\n(например, \"Иванов Иван Иванович\"):";
     private static final String ANSWER_FOR_USERNAME = "Теперь вы \"%s\"\n/help";

@@ -58,6 +58,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+        System.out.println("Received: " + update);
         if (!isPrivateMessage(update)) {
             onUnknownUpdate(update); return;
         }
