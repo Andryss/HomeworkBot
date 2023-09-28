@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -160,12 +161,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
         @Override
         public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
-            SendMessage message = new SendMessage();
-            message.setChatId(update.getMessage().getChatId());
-            message.setText(helpMessage);
-
-            sender.execute(message);
-
+            AbsSenderUtils.sendMessage(update, sender, helpMessage);
             onExitHandler.run();
         }
 

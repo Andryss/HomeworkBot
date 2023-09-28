@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.andryss.homeworkbot.repositories.UserRepository;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -15,21 +16,18 @@ public class LeaderServiceImpl implements LeaderService {
 
     private final UserRepository userRepository;
 
-    @Value("${group.leaders.telegram.ids}")
-    private String leadersTelegramIdsString;
+    @Value("${group.leaders.telegram.usernames}")
+    private String leadersTelegramUsernames;
 
-    private final Set<Long> leadersTelegramIds = new HashSet<>();
+    private final Set<String> leadersUsernames = new HashSet<>();
 
     @PostConstruct
     private void initLeadersIds() {
-        String[] splitLeadersIds = leadersTelegramIdsString.split(",");
-        for (String leaderId : splitLeadersIds) {
-            leadersTelegramIds.add(Long.parseLong(leaderId));
-        }
+        leadersUsernames.addAll(Arrays.asList(leadersTelegramUsernames.split(",")));
     }
 
     @Override
-    public boolean isLeader(Long userId) {
-        return userRepository.existsById(userId) && leadersTelegramIds.contains(userId);
+    public boolean isLeader(Long userId, String username) {
+        return userRepository.existsById(userId) && leadersUsernames.contains(username);
     }
 }
