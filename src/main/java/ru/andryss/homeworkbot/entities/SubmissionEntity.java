@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "submissions")
 public class SubmissionEntity {
     @Id
     @Column(name = "file_id")

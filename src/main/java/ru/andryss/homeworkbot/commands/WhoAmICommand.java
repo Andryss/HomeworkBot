@@ -3,10 +3,10 @@ package ru.andryss.homeworkbot.commands;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 import ru.andryss.homeworkbot.services.UserService;
 
 @Component
@@ -30,15 +30,11 @@ public class WhoAmICommand implements CommandHandler {
         Long userId = update.getMessage().getFrom().getId();
         String userName = userService.getUserName(userId);
 
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
         if (userName == null) {
-            message.setText(NOT_REGISTERED);
+            AbsSenderUtils.sendMessage(update, sender, NOT_REGISTERED);
         } else {
-            message.setText(String.format(ANSWER, userName));
+            AbsSenderUtils.sendMessage(update, sender, String.format(ANSWER, userName));
         }
-
-        sender.execute(message);
 
         onExitHandler.run();
     }

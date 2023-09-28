@@ -7,6 +7,7 @@ import ru.andryss.homeworkbot.repositories.TopicRepository;
 import ru.andryss.homeworkbot.repositories.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,5 +24,10 @@ public class TopicServiceImpl implements TopicService {
         topic.setCreateDatetime(LocalDateTime.now());
 
         topicRepository.save(topic);
+    }
+
+    @Override
+    public List<String> listTopics() {
+        return topicRepository.findAllTopicsNames();
     }
 }

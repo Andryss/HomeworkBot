@@ -1,7 +1,7 @@
 package ru.andryss.homeworkbot.commands;
 
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
@@ -17,6 +17,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 
 @Component
+@RequiredArgsConstructor
 public class CreateTopicCommandHandler implements CommandHandler {
 
     @Getter
@@ -44,11 +45,6 @@ public class CreateTopicCommandHandler implements CommandHandler {
     private final LeaderService leaderService;
     private final TopicService topicService;
 
-    @Autowired
-    public CreateTopicCommandHandler(LeaderService leaderService, TopicService topicService) {
-        this.leaderService = leaderService;
-        this.topicService = topicService;
-    }
 
     @Override
     public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
