@@ -8,3 +8,7 @@ spring.datasource.driver-class-name=org.h2.Driver
 spring.datasource.url=jdbc:h2:mem:testdb
 
 spring.jpa.open-in-view=false
+
+
+### Leaders ids (format: "USERNAME1,USERNAME2,USERNAME3,...")
+group.leaders.telegram.usernames=<SOME_USERNAMES>

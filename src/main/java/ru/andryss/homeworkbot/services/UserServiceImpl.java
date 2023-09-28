@@ -1,12 +1,12 @@
 package ru.andryss.homeworkbot.services;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.andryss.homeworkbot.entities.UserEntity;
 import ru.andryss.homeworkbot.repositories.UserRepository;
 
-@Component
+@Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
