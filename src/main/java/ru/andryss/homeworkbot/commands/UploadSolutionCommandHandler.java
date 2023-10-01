@@ -3,6 +3,7 @@ package ru.andryss.homeworkbot.commands;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -47,6 +48,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
     private final Map<Long, List<String>> userToAvailableTopics = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedTopic = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedFile = new ConcurrentHashMap<>();
+    private final Map<Long, String> userToUploadedFileExtension = new ConcurrentHashMap<>();
 
     private final UserService userService;
     private final SubmissionService submissionService;
@@ -134,11 +136,16 @@ public class UploadSolutionCommandHandler implements CommandHandler {
             return;
         }
 
-        String fileId = update.getMessage().getDocument().getFileId();
+        Document document = update.getMessage().getDocument();
+        String fileId = document.getFileId();
         userToUploadedFile.put(userId, fileId);
 
+        String fileName = document.getFileName();
+        String extension = fileName.substring(fileName.lastIndexOf('.'));
+        userToUploadedFileExtension.put(userId, extension);
+
         String userName = userService.getUserName(userId);
-        sendDocument(update, sender, fileId, userName);
+        sendDocument(update, sender, fileId, userName + extension);
 
         sendMessageWithKeyboard(update, sender, String.format(ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
@@ -161,16 +168,18 @@ public class UploadSolutionCommandHandler implements CommandHandler {
             userToAvailableTopics.remove(userId);
             userToUploadedTopic.remove(userId);
             userToUploadedFile.remove(userId);
+            userToUploadedFileExtension.remove(userId);
             userToOnExitHandler.remove(userId).run();
             return;
         }
 
-        submissionService.uploadSubmission(userId, userToUploadedTopic.get(userId), userToUploadedFile.get(userId));
+        submissionService.uploadSubmission(userId, userToUploadedTopic.get(userId), userToUploadedFile.get(userId), userToUploadedFileExtension.get(userId));
         sendMessage(update, sender, CONFIRMATION_SUCCESS);
         userToState.remove(userId);
         userToAvailableTopics.remove(userId);
         userToUploadedTopic.remove(userId);
         userToUploadedFile.remove(userId);
+        userToUploadedFileExtension.remove(userId);
         userToOnExitHandler.remove(userId).run();
     }
 }

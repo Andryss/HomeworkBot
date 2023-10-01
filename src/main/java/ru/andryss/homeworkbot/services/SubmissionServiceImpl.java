@@ -20,17 +20,26 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public List<String> listAvailableTopics(Long userId) {
-        return submissionRepository.listTopicsNotSubmittedBy(userId);
+        List<String> allTopicsNames = topicRepository.findAllTopicsNames();
+        List<String> submittedTopicsNames = submissionRepository.listTopicsSubmittedBy(userId);
+        allTopicsNames.removeAll(submittedTopicsNames);
+        return allTopicsNames;
     }
 
     @Override
-    public void uploadSubmission(Long userId, String topicName, String fileId) {
+    public void uploadSubmission(Long userId, String topicName, String fileId, String extension) {
         SubmissionEntity submission = new SubmissionEntity();
-        submission.setUser(userRepository.findById(userId).orElseThrow());
-        submission.setTopic(topicRepository.findByName(topicName).orElseThrow());
         submission.setFileId(fileId);
+        submission.setExtension(extension);
         submission.setUploadDatetime(LocalDateTime.now());
+        submission.setTopic(topicRepository.findByName(topicName).orElseThrow());
+        submission.setUser(userRepository.findById(userId).orElseThrow());
 
         submissionRepository.save(submission);
+    }
+
+    @Override
+    public List<String> listSubmittedTopics(Long userId) {
+        return submissionRepository.listTopicsSubmittedBy(userId);
     }
 }

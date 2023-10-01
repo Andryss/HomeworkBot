@@ -20,6 +20,9 @@ public class SubmissionEntity {
     @Column(name = "file_id")
     private String fileId;
 
+    @Column(name = "extension")
+    private String extension;
+
     @Column(name = "upload_datetime", nullable = false)
     private LocalDateTime uploadDatetime;
 
