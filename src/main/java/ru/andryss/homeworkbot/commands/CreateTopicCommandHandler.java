@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.LeaderService;
 import ru.andryss.homeworkbot.services.TopicService;
+import ru.andryss.homeworkbot.services.UserService;
 
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/createtopic", "добавить домашнее задание (для старосты)");
 
+    private static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";
     private static final String NOT_LEADER = "Вы не являетесь старостой";
     private static final String ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания (оно будет отображаться для сдачи):";
     private static final String ASK_FOR_RESENDING_TOPIC = "Пожалуйста, введите название текстом:";
@@ -42,6 +44,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
     private final Map<Long, Runnable> userToOnExitHandler = new ConcurrentHashMap<>();
     private final Map<Long, String> userToCreatedTopic = new ConcurrentHashMap<>();
 
+    private final UserService userService;
     private final LeaderService leaderService;
     private final TopicService topicService;
 
@@ -50,8 +53,16 @@ public class CreateTopicCommandHandler implements CommandHandler {
     public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
         String username = update.getMessage().getFrom().getUserName();
-        if (!leaderService.isLeader(userId, username)) {
+
+        if (userService.getUserName(userId) == null) {
+            sendMessage(update, sender, REGISTER_FIRST);
+            onExitHandler.run();
+            return;
+        }
+
+        if (!leaderService.isLeader(username)) {
             sendMessage(update, sender, NOT_LEADER);
+            onExitHandler.run();
             return;
         }
 

@@ -34,7 +34,7 @@ public class ListTopicsCommandHandler implements CommandHandler {
         } else {
             StringBuilder builder = new StringBuilder();
             for (String topic : topics) {
-                builder.append('\n').append(topic);
+                builder.append('\n').append("• ").append(topic);
             }
             sendMessage(update, sender, String.format(TOPICS_LIST, builder));
         }
