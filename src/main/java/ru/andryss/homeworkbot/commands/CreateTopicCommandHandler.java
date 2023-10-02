@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 
@@ -23,17 +24,6 @@ public class CreateTopicCommandHandler implements CommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/createtopic", "добавить домашнее задание (для старосты)");
-
-    private static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";
-    private static final String NOT_LEADER = "Вы не являетесь старостой";
-    private static final String ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания (оно будет отображаться для сдачи):";
-    private static final String ASK_FOR_RESENDING_TOPIC = "Пожалуйста, введите название текстом:";
-    private static final String ASK_FOR_CONFIRMATION = "Вы уверены, что хотите добавить домашнее задание \"%s\"? (да/нет)";
-    private static final String YES_ANSWER = "да";
-    private static final String NO_ANSWER = "нет";
-    private static final String ASK_FOR_RESENDING_CONFIRMATION = "Пожалуйста, выберите \"да\" или \"нет\":";
-    private static final String CONFIRMATION_SUCCESS = "Новое домашнее задание добавлено в список\n/help";
-    private static final String CONFIRMATION_FAILURE = "Не удалось добавить новое домашнее задание\n/help";
 
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_CONFIRMATION = 1;
@@ -82,7 +72,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
     }
 
     private void onGetCommand(Update update, AbsSender sender) throws TelegramApiException {
-        sendMessage(update, sender, ASK_FOR_TOPIC_NAME);
+        sendMessage(update, sender, CREATETOPIC_ASK_FOR_TOPIC_NAME);
         Long userId = update.getMessage().getFrom().getId();
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
     }
@@ -99,7 +89,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
         String topic = update.getMessage().getText();
         userToCreatedTopic.put(userId, topic);
 
-        sendMessageWithKeyboard(update, sender, String.format(ASK_FOR_CONFIRMATION, topic), YES_NO_BUTTONS);
+        sendMessageWithKeyboard(update, sender, String.format(CREATETOPIC_ASK_FOR_CONFIRMATION, topic), YES_NO_BUTTONS);
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
     }
 
@@ -115,7 +105,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
 
 
         if (confirmation.equals(NO_ANSWER)) {
-            sendMessage(update, sender, CONFIRMATION_FAILURE);
+            sendMessage(update, sender, CREATETOPIC_CONFIRMATION_FAILURE);
             userToState.remove(userId);
             userToCreatedTopic.remove(userId);
             userToOnExitHandler.remove(userId).run();
@@ -123,7 +113,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
         }
 
         topicService.createTopic(userId, userToCreatedTopic.get(userId));
-        sendMessage(update, sender, CONFIRMATION_SUCCESS);
+        sendMessage(update, sender, CREATETOPIC_CONFIRMATION_SUCCESS);
         userToState.remove(userId);
         userToCreatedTopic.remove(userId);
         userToOnExitHandler.remove(userId).run();

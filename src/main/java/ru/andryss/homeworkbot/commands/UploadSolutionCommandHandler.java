@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 
 @Component
@@ -22,20 +23,6 @@ public class UploadSolutionCommandHandler implements CommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/uploadsolution", "загрузить решение домашнего задания");
-
-    private static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";
-    private static final String NO_AVAILABLE_TOPICS = "Нет доступных домашних заданий для сдачи";
-    private static final String AVAILABLE_TOPICS_LIST = "Список доступных домашних заданий для сдачи: %s";
-    private static final String ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания, которое хотите сдать:";
-    private static final String ASK_FOR_RESENDING_TOPIC = "Пожалуйста, введите название домашнего задания:";
-    private static final String ASK_FOR_SUBMISSION = "Пожалуйста, загрузите ваше решение в виде документа:";
-    private static final String ASK_FOR_RESENDING_SUBMISSION = "Пожалуйста, загрузите ваше решение в виде документа:";
-    private static final String ASK_FOR_CONFIRMATION = "Вы уверены, что хотите загрузить такое решение, как ответ на \"%s\"? (да/нет)";
-    private static final String YES_ANSWER = "да";
-    private static final String NO_ANSWER = "нет";
-    private static final String ASK_FOR_RESENDING_CONFIRMATION = "Пожалуйста, выберите \"да\" или \"нет\":";
-    private static final String CONFIRMATION_SUCCESS = "Ваше решение успешно загружено\n/help";
-    private static final String CONFIRMATION_FAILURE = "Не удалось загрузить решение\n/help";
 
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_SUBMISSION = 1;
@@ -66,7 +53,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
 
         List<String> availableTopics = submissionService.listAvailableTopics(userId);
         if (availableTopics.isEmpty()) {
-            sendMessage(update, sender, NO_AVAILABLE_TOPICS);
+            sendMessage(update, sender, UPLOADSOLUTION_NO_AVAILABLE_TOPICS);
             onExitHandler.run();
             return;
         }
@@ -96,9 +83,9 @@ public class UploadSolutionCommandHandler implements CommandHandler {
         for (String topic : availableTopics) {
             builder.append('\n').append("• ").append(topic);
         }
-        sendMessage(update, sender, String.format(AVAILABLE_TOPICS_LIST, builder));
+        sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, builder));
 
-        sendMessageWithKeyboard(update, sender, ASK_FOR_TOPIC_NAME, List.of(availableTopics));
+        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, List.of(availableTopics));
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
     }
 
@@ -123,7 +110,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
 
         userToUploadedTopic.put(userId, topic);
 
-        sendMessage(update, sender, ASK_FOR_SUBMISSION);
+        sendMessage(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION);
         userToState.put(userId, WAITING_FOR_SUBMISSION);
     }
 
@@ -131,7 +118,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
         Long userId = update.getMessage().getFrom().getId();
 
         if (!update.getMessage().hasDocument()) {
-            sendMessage(update, sender, ASK_FOR_RESENDING_SUBMISSION);
+            sendMessage(update, sender, UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION);
             userToState.put(userId, WAITING_FOR_SUBMISSION);
             return;
         }
@@ -147,7 +134,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
         String userName = userService.getUserName(userId);
         sendDocument(update, sender, fileId, userName + extension);
 
-        sendMessageWithKeyboard(update, sender, String.format(ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
+        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
     }
 
@@ -163,7 +150,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
 
 
         if (confirmation.equals(NO_ANSWER)) {
-            sendMessage(update, sender, CONFIRMATION_FAILURE);
+            sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_FAILURE);
             userToState.remove(userId);
             userToAvailableTopics.remove(userId);
             userToUploadedTopic.remove(userId);
@@ -174,7 +161,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
         }
 
         submissionService.uploadSubmission(userId, userToUploadedTopic.get(userId), userToUploadedFile.get(userId), userToUploadedFileExtension.get(userId));
-        sendMessage(update, sender, CONFIRMATION_SUCCESS);
+        sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_SUCCESS);
         userToState.remove(userId);
         userToAvailableTopics.remove(userId);
         userToUploadedTopic.remove(userId);

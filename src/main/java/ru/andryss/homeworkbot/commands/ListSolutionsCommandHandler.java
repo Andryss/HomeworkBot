@@ -10,6 +10,7 @@ import ru.andryss.homeworkbot.services.SubmissionService;
 
 import java.util.List;
 
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
@@ -18,9 +19,6 @@ public class ListSolutionsCommandHandler implements CommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/listsolutions", "вывести список ваших решений домашних заданий");
-
-    private static final String TOPICS_LIST = "Список домашних заданий с загруженным решением: %s";
-    private static final String NO_TOPICS = "Вы еще не загрузили ни одного домашнего задания\n/uploadsolution";
 
     private final SubmissionService submissionService;
 
@@ -31,13 +29,13 @@ public class ListSolutionsCommandHandler implements CommandHandler {
         List<String> submittedTopics = submissionService.listSubmittedTopics(userId);
 
         if (submittedTopics.isEmpty()) {
-            sendMessage(update, sender, NO_TOPICS);
+            sendMessage(update, sender, LISTSOLUTIONS_NO_SUBMITTED_TOPICS);
         } else {
             StringBuilder builder = new StringBuilder();
             for (String topic : submittedTopics) {
                 builder.append('\n').append("• ").append(topic);
             }
-            sendMessage(update, sender, String.format(TOPICS_LIST, builder));
+            sendMessage(update, sender, String.format(LISTSOLUTIONS_SUBMITTED_TOPICS_LIST, builder));
         }
 
         onExitHandler.run();

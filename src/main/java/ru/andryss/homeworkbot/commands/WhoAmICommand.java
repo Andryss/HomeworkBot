@@ -9,14 +9,14 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 import ru.andryss.homeworkbot.services.UserService;
 
+
+import static ru.andryss.homeworkbot.commands.Messages.*;
+
 @Component
 public class WhoAmICommand implements CommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/whoami", "вывести информацию о пользователе");
-
-    private static final String ANSWER = "ФИО: %s";
-    private static final String NOT_REGISTERED = "Вы не зарегистрировались\n/start";
 
     private final UserService userService;
 
@@ -31,9 +31,9 @@ public class WhoAmICommand implements CommandHandler {
         String userName = userService.getUserName(userId);
 
         if (userName == null) {
-            AbsSenderUtils.sendMessage(update, sender, NOT_REGISTERED);
+            AbsSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
         } else {
-            AbsSenderUtils.sendMessage(update, sender, String.format(ANSWER, userName));
+            AbsSenderUtils.sendMessage(update, sender, String.format(WHOAMI_ANSWER, userName));
         }
 
         onExitHandler.run();

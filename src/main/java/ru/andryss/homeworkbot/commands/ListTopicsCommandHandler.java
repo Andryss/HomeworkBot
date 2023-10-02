@@ -10,6 +10,7 @@ import ru.andryss.homeworkbot.services.TopicService;
 
 import java.util.List;
 
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
@@ -19,9 +20,6 @@ public class ListTopicsCommandHandler implements CommandHandler {
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/listtopics", "вывести список всех домашних заданий");
 
-    private static final String TOPICS_LIST = "Список домашних заданий: %s";
-    private static final String NO_TOPICS = "Нет домашних заданий";
-
     private final TopicService topicService;
 
 
@@ -30,13 +28,13 @@ public class ListTopicsCommandHandler implements CommandHandler {
         List<String> topics = topicService.listTopics();
 
         if (topics.isEmpty()) {
-            sendMessage(update, sender, NO_TOPICS);
+            sendMessage(update, sender, LISTTOPICS_NO_TOPICS);
         } else {
             StringBuilder builder = new StringBuilder();
             for (String topic : topics) {
                 builder.append('\n').append("• ").append(topic);
             }
-            sendMessage(update, sender, String.format(TOPICS_LIST, builder));
+            sendMessage(update, sender, String.format(LISTTOPICS_TOPICS_LIST, builder));
         }
 
         onExitHandler.run();

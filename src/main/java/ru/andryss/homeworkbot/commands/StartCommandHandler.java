@@ -11,6 +11,7 @@ import ru.andryss.homeworkbot.services.UserService;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
@@ -18,9 +19,6 @@ public class StartCommandHandler implements CommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/start", "зарегистрировать (переименовать) пользователя");
-
-    private static final String ASK_FOR_USERNAME = "Пожалуйста, введите ФИО, так будут подписаны ваши работы\n(например, \"Иванов Иван Иванович\"):";
-    private static final String ANSWER_FOR_USERNAME = "Теперь вы \"%s\"\n/help";
 
     private final Map<Long, Runnable> userToOnExitHandler = new ConcurrentHashMap<>();
 
@@ -33,7 +31,7 @@ public class StartCommandHandler implements CommandHandler {
 
     @Override
     public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
-        sendMessage(update, sender, ASK_FOR_USERNAME);
+        sendMessage(update, sender, START_ASK_FOR_FIRSTNAME_LASTNAME);
         Long userId = update.getMessage().getFrom().getId();
         userToOnExitHandler.put(userId, onExitHandler);
     }
@@ -43,7 +41,7 @@ public class StartCommandHandler implements CommandHandler {
         Long userId = update.getMessage().getFrom().getId();
         String userName = update.getMessage().getText();
         userService.putUserName(userId, userName);
-        sendMessage(update, sender, String.format(ANSWER_FOR_USERNAME, userName));
+        sendMessage(update, sender, String.format(START_ANSWER_FOR_FIRSTNAME_LASTNAME, userName));
         userToOnExitHandler.remove(userId).run();
     }
 }
