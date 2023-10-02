@@ -73,6 +73,8 @@ public class CommandDispatcher extends TelegramLongPollingBot {
                 handlerByCommand.get(userCommand).onUpdateReceived(update, this);
             } catch (TelegramApiException e) {
                 onTelegramApiException(update, e);
+            } catch (Exception e) {
+                onUnknownException(update, e);
             }
             return;
         }
@@ -125,6 +127,11 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     }
 
     private void onTelegramApiException(Update update, TelegramApiException e) {
+        System.out.println("TelegramApiException during update: " + update);
+        e.printStackTrace();
+    }
+
+    private void onUnknownException(Update update, Exception e) {
         System.out.println("Exception during update: " + update);
         e.printStackTrace();
     }
