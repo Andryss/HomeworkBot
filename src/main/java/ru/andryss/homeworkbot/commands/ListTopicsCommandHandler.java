@@ -15,7 +15,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
 @RequiredArgsConstructor
-public class ListTopicsCommandHandler implements CommandHandler {
+public class ListTopicsCommandHandler extends SingleActionCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/listtopics", "вывести список всех домашних заданий");
@@ -24,24 +24,21 @@ public class ListTopicsCommandHandler implements CommandHandler {
 
 
     @Override
-    public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
+    protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
         List<String> topics = topicService.listTopics();
 
         if (topics.isEmpty()) {
             sendMessage(update, sender, LISTTOPICS_NO_TOPICS);
         } else {
-            StringBuilder builder = new StringBuilder();
-            for (String topic : topics) {
-                builder.append('\n').append("• ").append(topic);
-            }
-            sendMessage(update, sender, String.format(LISTTOPICS_TOPICS_LIST, builder));
+            sendMessage(update, sender, String.format(LISTTOPICS_TOPICS_LIST, createTopicsString(topics)));
         }
-
-        onExitHandler.run();
     }
 
-    @Override
-    public void onUpdateReceived(Update update, AbsSender sender) {
-
+    private String createTopicsString(List<String> topics) {
+        StringBuilder builder = new StringBuilder();
+        for (String topic : topics) {
+            builder.append('\n').append("• ").append(topic);
+        }
+        return builder.toString();
     }
 }

@@ -15,7 +15,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
 @RequiredArgsConstructor
-public class ListSolutionsCommandHandler implements CommandHandler {
+public class ListSolutionsCommandHandler extends SingleActionCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/listsolutions", "вывести список ваших решений домашних заданий");
@@ -24,25 +24,22 @@ public class ListSolutionsCommandHandler implements CommandHandler {
 
 
     @Override
-    public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
+    protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getChatId();
         List<String> submittedTopics = submissionService.listSubmittedTopics(userId);
 
         if (submittedTopics.isEmpty()) {
             sendMessage(update, sender, LISTSOLUTIONS_NO_SUBMITTED_TOPICS);
         } else {
-            StringBuilder builder = new StringBuilder();
-            for (String topic : submittedTopics) {
-                builder.append('\n').append("• ").append(topic);
-            }
-            sendMessage(update, sender, String.format(LISTSOLUTIONS_SUBMITTED_TOPICS_LIST, builder));
+            sendMessage(update, sender, String.format(LISTSOLUTIONS_SUBMITTED_TOPICS_LIST, createTopicsString(submittedTopics)));
         }
-
-        onExitHandler.run();
     }
 
-    @Override
-    public void onUpdateReceived(Update update, AbsSender sender) {
-
+    private String createTopicsString(List<String> submittedTopics) {
+        StringBuilder builder = new StringBuilder();
+        for (String topic : submittedTopics) {
+            builder.append('\n').append("• ").append(topic);
+        }
+        return builder.toString();
     }
 }
