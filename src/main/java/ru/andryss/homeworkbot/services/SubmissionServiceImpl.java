@@ -3,6 +3,10 @@ package ru.andryss.homeworkbot.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.andryss.homeworkbot.entities.SubmissionEntity;
+import ru.andryss.homeworkbot.entities.TopicEntity;
+import ru.andryss.homeworkbot.entities.UserEntity;
+import ru.andryss.homeworkbot.exceptions.NoSuchTopicException;
+import ru.andryss.homeworkbot.exceptions.NoSuchUserException;
 import ru.andryss.homeworkbot.repositories.SubmissionRepository;
 import ru.andryss.homeworkbot.repositories.TopicRepository;
 import ru.andryss.homeworkbot.repositories.UserRepository;
@@ -28,12 +32,15 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public void uploadSubmission(Long userId, String topicName, String fileId, String extension) {
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoSuchUserException(String.valueOf(userId)));
+        TopicEntity topic = topicRepository.findByName(topicName).orElseThrow(() -> new NoSuchTopicException(topicName));
+
         SubmissionEntity submission = new SubmissionEntity();
         submission.setFileId(fileId);
         submission.setExtension(extension);
         submission.setUploadDatetime(LocalDateTime.now());
-        submission.setTopic(topicRepository.findByName(topicName).orElseThrow());
-        submission.setUser(userRepository.findById(userId).orElseThrow());
+        submission.setTopic(topic);
+        submission.setUser(user);
 
         submissionRepository.save(submission);
     }
