@@ -1,21 +1,43 @@
 package ru.andryss.homeworkbot.commands;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.SubmissionService;
 import ru.andryss.homeworkbot.services.UserService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
+import static ru.andryss.homeworkbot.commands.Messages.ASK_FOR_RESENDING_CONFIRMATION;
+import static ru.andryss.homeworkbot.commands.Messages.ASK_FOR_RESENDING_TOPIC;
+import static ru.andryss.homeworkbot.commands.Messages.NO_ANSWER;
+import static ru.andryss.homeworkbot.commands.Messages.REGISTER_FIRST;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_ASK_FOR_CONFIRMATION;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_ASK_FOR_SUBMISSION;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_ASK_FOR_TOPIC_NAME;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_AVAILABLE_TOPICS_LIST;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_CONFIRMATION_FAILURE;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_CONFIRMATION_SUCCESS;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_ERROR_OCCURED;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_NO_AVAILABLE_TOPICS;
+import static ru.andryss.homeworkbot.commands.Messages.YES_ANSWER;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.downloadFile;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendDocument;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 
 @Component
 @RequiredArgsConstructor
@@ -118,25 +140,96 @@ public class UploadSolutionCommandHandler implements CommandHandler {
     private void onGetSubmission(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
 
-        if (!update.getMessage().hasDocument()) {
+        File submission = null;
+
+        try {
+            if (update.getMessage().hasDocument()) {
+                submission = extractDocument(update, sender);
+            } else if (update.getMessage().hasPhoto()) {
+                submission = extractPhoto(update, sender);
+            } else if (update.getMessage().hasText()) {
+                submission = extractText(update, sender);
+            }
+        } catch (IOException e) {
+            sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
+            userToState.put(userId, WAITING_FOR_SUBMISSION);
+            return;
+        }
+
+        if (submission == null) {
             sendMessage(update, sender, UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION);
             userToState.put(userId, WAITING_FOR_SUBMISSION);
             return;
         }
 
-        Document document = update.getMessage().getDocument();
+        Message message = sendDocument(update, sender, submission);
+        FileUtils.deleteQuietly(submission);
+
+        Document document = message.getDocument();
         String fileId = document.getFileId();
         userToUploadedFile.put(userId, fileId);
 
-        String fileName = document.getFileName();
+        String fileName = submission.getName();
         String extension = fileName.substring(fileName.lastIndexOf('.'));
         userToUploadedFileExtension.put(userId, extension);
 
-        String userName = userService.getUserName(userId);
-        sendDocument(update, sender, fileId, userName + extension);
-
         sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
+    }
+
+    private File extractDocument(Update update, AbsSender sender) throws TelegramApiException, IOException {
+        Long id = update.getMessage().getFrom().getId();
+        String userName = userService.getUserName(id);
+
+        Document document = update.getMessage().getDocument();
+        String documentFileName = document.getFileName();
+        String extension = documentFileName.substring(documentFileName.lastIndexOf('.'));
+
+        String fileName = userName + extension;
+        File submission = new File(fileName);
+        if (!submission.createNewFile()) {
+            throw new IOException("can't create file " + submission.getAbsolutePath());
+        }
+
+        String fileId = document.getFileId();
+        downloadFile(sender, fileId, submission);
+
+        return submission;
+    }
+
+    private File extractPhoto(Update update, AbsSender sender) throws TelegramApiException, IOException {
+        Long id = update.getMessage().getFrom().getId();
+        String userName = userService.getUserName(id);
+        String fileName = userName + ".pdf";
+        File submission = new File(fileName);
+        if (!submission.createNewFile()) {
+            throw new IOException("can't create file " + submission.getAbsolutePath());
+        }
+
+        List<PhotoSize> photoSizes = update.getMessage().getPhoto();
+        PhotoSize biggestPhotoSize = photoSizes.get(photoSizes.size() - 1);
+
+        downloadFile(sender, biggestPhotoSize.getFileId(), submission);
+
+        return submission;
+    }
+
+    private File extractText(Update update, AbsSender sender) throws IOException {
+        Long id = update.getMessage().getFrom().getId();
+        String userName = userService.getUserName(id);
+        String fileName = userName + ".txt";
+        File submission = new File(fileName);
+        if (!submission.createNewFile()) {
+            throw new IOException("can't create file " + submission.getAbsolutePath());
+        }
+
+        String text = update.getMessage().getText();
+
+        try (FileWriter writer = new FileWriter(submission)) {
+            writer.write(text);
+        }
+
+        return submission;
     }
 
     private void onGetConfirmation(Update update, AbsSender sender) throws TelegramApiException {

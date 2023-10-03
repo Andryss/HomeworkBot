@@ -67,8 +67,14 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         Message message = update.getMessage();
         Long userId = message.getFrom().getId();
 
-        String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
-        if (!userCommand.equals(NO_COMMAND)) {
+        String command = extractCommand(message);
+        if (command.equals(NO_COMMAND)) {
+            String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
+            if (userCommand.equals(NO_COMMAND)) {
+                onNoCommandUpdate(update);
+                return;
+            }
+
             try {
                 handlerByCommand.get(userCommand).onUpdateReceived(update, this);
             } catch (TelegramApiException e) {
@@ -76,12 +82,6 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             } catch (Exception e) {
                 onUnknownException(update, e);
             }
-            return;
-        }
-
-        String command = extractCommand(message);
-        if (command.equals(NO_COMMAND)) {
-            onNoCommandUpdate(update);
             return;
         }
 

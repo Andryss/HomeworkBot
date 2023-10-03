@@ -29,9 +29,9 @@ public class ListUnsolvedCommandHandler extends SingleActionCommandHandler {
         List<String> unsolvedTopics = submissionService.listUnsolvedTopics(userId);
 
         if (unsolvedTopics.isEmpty()) {
-            sendMessage(update, sender, LISTSOLUTIONS_NO_UNSOLVED_TOPICS);
+            sendMessage(update, sender, LISTUNSOLVED_NO_UNSOLVED_TOPICS);
         } else {
-            sendMessage(update, sender, String.format(LISTSOLUTIONS_UNSOVLED_TOPICS_LIST, createTopicsString(unsolvedTopics)));
+            sendMessage(update, sender, String.format(LISTUNSOLVED_UNSOVLED_TOPICS_LIST, createTopicsString(unsolvedTopics)));
         }
     }
 

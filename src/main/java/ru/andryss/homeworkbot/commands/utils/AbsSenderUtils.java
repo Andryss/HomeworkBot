@@ -5,6 +5,7 @@ import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -53,12 +54,10 @@ public class AbsSenderUtils {
         sender.execute(message);
     }
 
-
-    public static void sendDocument(Update update, AbsSender sender, String fileId, String fileName) throws TelegramApiException {
+    public static void downloadFile(AbsSender sender, String fileId, File destination) throws TelegramApiException {
         if (!(sender instanceof DefaultAbsSender)) throw new TelegramApiException("Not DefaultAbsSender");
         org.telegram.telegrambots.meta.api.objects.File file = sender.execute(createGetFile(fileId));
-        File downloadFile = ((DefaultAbsSender) sender).downloadFile(file);
-        sender.execute(createSendDocument(update.getMessage().getChatId(), downloadFile, fileName));
+        ((DefaultAbsSender) sender).downloadFile(file, destination);
     }
 
     private static GetFile createGetFile(String fileId) {
@@ -67,22 +66,16 @@ public class AbsSenderUtils {
         return file;
     }
 
+    public static Message sendDocument(Update update, AbsSender sender, File file) throws TelegramApiException {
+        if (!(sender instanceof DefaultAbsSender)) throw new TelegramApiException("Not DefaultAbsSender");
+        return sender.execute(createSendDocument(update.getMessage().getChatId(), file, file.getName()));
+    }
+
     private static SendDocument createSendDocument(Long chatId, File file, String fileName) {
         SendDocument document = new SendDocument();
         document.setChatId(chatId);
         document.setDocument(new InputFile(file, fileName));
         return document;
-    }
-
-    public static void downloadFile(AbsSender sender, String fileId, File destination) throws TelegramApiException {
-        if (!(sender instanceof DefaultAbsSender)) throw new TelegramApiException("Not DefaultAbsSender");
-        org.telegram.telegrambots.meta.api.objects.File file = sender.execute(createGetFile(fileId));
-        ((DefaultAbsSender) sender).downloadFile(file, destination);
-    }
-
-    public static void sendDocument(Update update, AbsSender sender, File file) throws TelegramApiException {
-        if (!(sender instanceof DefaultAbsSender)) throw new TelegramApiException("Not DefaultAbsSender");
-        sender.execute(createSendDocument(update.getMessage().getChatId(), file, file.getName()));
     }
 
 }
