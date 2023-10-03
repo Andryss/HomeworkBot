@@ -74,4 +74,15 @@ public class AbsSenderUtils {
         return document;
     }
 
+    public static void downloadFile(AbsSender sender, String fileId, File destination) throws TelegramApiException {
+        if (!(sender instanceof DefaultAbsSender)) throw new TelegramApiException("Not DefaultAbsSender");
+        org.telegram.telegrambots.meta.api.objects.File file = sender.execute(createGetFile(fileId));
+        ((DefaultAbsSender) sender).downloadFile(file, destination);
+    }
+
+    public static void sendDocument(Update update, AbsSender sender, File file) throws TelegramApiException {
+        if (!(sender instanceof DefaultAbsSender)) throw new TelegramApiException("Not DefaultAbsSender");
+        sender.execute(createSendDocument(update.getMessage().getChatId(), file, file.getName()));
+    }
+
 }

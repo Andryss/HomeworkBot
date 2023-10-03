@@ -12,7 +12,10 @@ import ru.andryss.homeworkbot.repositories.TopicRepository;
 import ru.andryss.homeworkbot.repositories.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -48,5 +51,22 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public List<String> listSubmittedTopics(Long userId) {
         return submissionRepository.listTopicsSubmittedBy(userId);
+    }
+
+    @Override
+    public List<TopicSubmissionsDto> listAllTopicsSubmissions() {
+        Map<String, TopicSubmissionsDto> topicNameToSubmissions = new HashMap<>();
+
+        List<SubmissionEntity> allSubmissions = submissionRepository.findAll();
+        for (SubmissionEntity submission : allSubmissions) {
+            String topicName = submission.getTopic().getName();
+            TopicSubmissionsDto topicSubmissionsDto = topicNameToSubmissions.computeIfAbsent(topicName,
+                    name -> new TopicSubmissionsDto(name, new ArrayList<>()));
+            topicSubmissionsDto.getSubmissions().add(
+                    new SubmissionDto(submission.getFileId(), submission.getExtension(), submission.getUser().getName())
+            );
+        }
+
+        return new ArrayList<>(topicNameToSubmissions.values());
     }
 }

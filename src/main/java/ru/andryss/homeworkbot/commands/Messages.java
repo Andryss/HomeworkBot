@@ -37,4 +37,7 @@ public class Messages {
     static final String LISTSOLUTIONS_SUBMITTED_TOPICS_LIST = "Список домашних заданий с загруженным решением: %s";
     static final String LISTSOLUTIONS_NO_SUBMITTED_TOPICS = "Вы еще не загрузили ни одного домашнего задания\n/help";
 
+    static final String DUMPSOLUTIONS_START_DUMP = "Начинаю выгрузку решений... \n(это может занять некоторое время)";
+    static final String DUMPSOLUTIONS_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
+
 }
