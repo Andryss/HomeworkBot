@@ -12,6 +12,7 @@ import java.util.zip.ZipOutputStream;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
@@ -23,6 +24,7 @@ import ru.andryss.homeworkbot.services.SubmissionService.TopicSubmissionsDto;
 import ru.andryss.homeworkbot.services.UserService;
 
 import static ru.andryss.homeworkbot.commands.Messages.DUMPSOLUTIONS_ERROR_OCCURED;
+import static ru.andryss.homeworkbot.commands.Messages.DUMPSOLUTIONS_NO_SUBMISSIONS;
 import static ru.andryss.homeworkbot.commands.Messages.DUMPSOLUTIONS_START_DUMP;
 import static ru.andryss.homeworkbot.commands.Messages.NOT_LEADER;
 import static ru.andryss.homeworkbot.commands.Messages.REGISTER_FIRST;
@@ -57,7 +59,6 @@ public class DumpSolutionsCommandHandler extends SingleActionCommandHandler {
             return;
         }
 
-        sendMessage(update, sender, DUMPSOLUTIONS_START_DUMP);
         try {
             sendSolutionsDump(update, sender);
         } catch (IOException e) {
@@ -69,6 +70,14 @@ public class DumpSolutionsCommandHandler extends SingleActionCommandHandler {
     private void sendSolutionsDump(Update update, AbsSender sender) throws TelegramApiException, IOException {
         List<TopicSubmissionsDto> topicSubmissionsDtoList = submissionService.listAllTopicsSubmissions();
 
+        long submissionsCount = topicSubmissionsDtoList.stream().mapToLong(dto -> dto.getSubmissions().size()).sum();
+        if (submissionsCount == 0) {
+            sendMessage(update, sender, DUMPSOLUTIONS_NO_SUBMISSIONS);
+            return;
+        }
+
+        sendMessage(update, sender, DUMPSOLUTIONS_START_DUMP);
+
         File dumpDir = new File("dump_" + update.getUpdateId() + "_" + Instant.now().toString());
         if (!dumpDir.mkdir()) {
             throw new IOException("can't create dir " + dumpDir.getAbsolutePath());
@@ -78,13 +87,15 @@ public class DumpSolutionsCommandHandler extends SingleActionCommandHandler {
         ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipArchive));
 
         for (TopicSubmissionsDto topicSubmissionsDto : topicSubmissionsDtoList) {
+            List<SubmissionDto> submissions = topicSubmissionsDto.getSubmissions();
+            if (submissions.isEmpty()) continue;
+
             String topicName = topicSubmissionsDto.getTopicName();
             File topicDir = new File(dumpDir.getAbsolutePath() + "/" + topicName);
             if (!topicDir.mkdir()) {
                 throw new IOException("can't create dir " + topicDir.getAbsolutePath());
             }
 
-            List<SubmissionDto> submissions = topicSubmissionsDto.getSubmissions();
             for (SubmissionDto submission : submissions) {
                 String submissionFilename = submission.getUploadedUserName() + submission.getExtension();
                 File submissionFile = new File(topicDir.getAbsolutePath() + "/" + submissionFilename);
@@ -105,9 +116,7 @@ public class DumpSolutionsCommandHandler extends SingleActionCommandHandler {
 
         sendDocument(update, sender, zipArchive);
 
-        if (!dumpDir.delete()) {
-            throw new IOException("can't delete dir " + dumpDir.getAbsolutePath());
-        }
+        FileUtils.deleteDirectory(dumpDir);
     }
 
     private static void write(File from, OutputStream to) throws IOException {

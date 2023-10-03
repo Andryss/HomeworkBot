@@ -19,6 +19,11 @@ public class TopicServiceImpl implements TopicService {
     private final TopicRepository topicRepository;
 
     @Override
+    public boolean topicExists(String topic) {
+        return topicRepository.existsByName(topic);
+    }
+
+    @Override
     public void createTopic(Long userId, String name) {
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoSuchUserException(String.valueOf(userId)));
 

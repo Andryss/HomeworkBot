@@ -10,6 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface TopicRepository extends JpaRepository<TopicEntity, Long> {
+    boolean existsByName(String name);
     Optional<TopicEntity> findByName(String name);
     @Query(value = "select name from topics", nativeQuery = true)
     List<String> findAllTopicsNames();

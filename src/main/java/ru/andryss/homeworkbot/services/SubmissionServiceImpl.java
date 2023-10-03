@@ -49,8 +49,11 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public List<String> listSubmittedTopics(Long userId) {
-        return submissionRepository.listTopicsSubmittedBy(userId);
+    public List<String> listUnsolvedTopics(Long userId) {
+        List<String> allTopics = topicRepository.findAllTopicsNames();
+        List<String> submittedTopics = submissionRepository.listTopicsSubmittedBy(userId);
+        allTopics.removeAll(submittedTopics);
+        return allTopics;
     }
 
     @Override

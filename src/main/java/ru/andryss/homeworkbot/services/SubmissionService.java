@@ -8,7 +8,7 @@ import lombok.Data;
 public interface SubmissionService {
     void uploadSubmission(Long userId, String topicName, String fileId, String extension);
     List<String> listAvailableTopics(Long userId);
-    List<String> listSubmittedTopics(Long userId);
+    List<String> listUnsolvedTopics(Long userId);
     List<TopicSubmissionsDto> listAllTopicsSubmissions();
 
     @Data

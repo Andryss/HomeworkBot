@@ -40,6 +40,12 @@ public class StartCommandHandler implements CommandHandler {
     public void onUpdateReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
         String userName = update.getMessage().getText();
+
+        if (userService.userNameExists(userName)) {
+            sendMessage(update, sender, START_ALREADY_REGISTERED);
+            userToOnExitHandler.remove(userId).run();
+        }
+
         userService.putUserName(userId, userName);
         sendMessage(update, sender, String.format(START_ANSWER_FOR_FIRSTNAME_LASTNAME, userName));
         userToOnExitHandler.remove(userId).run();

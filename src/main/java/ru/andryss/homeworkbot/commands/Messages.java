@@ -13,11 +13,13 @@ public class Messages {
 
     // Specific messages block (starts with "<COMMAND_NAME>_")
     static final String START_ASK_FOR_FIRSTNAME_LASTNAME = "Пожалуйста, введите ФИО, так будут подписаны ваши работы\n(например, \"Иванов Иван Иванович\"):";
+    static final String START_ALREADY_REGISTERED = "Кто-то уже зарегистрировался под таким ФИО";
     static final String START_ANSWER_FOR_FIRSTNAME_LASTNAME = "Теперь вы \"%s\"\n/help";
 
     static final String WHOAMI_ANSWER = "ФИО: %s";
 
     static final String CREATETOPIC_ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания (оно будет отображаться для сдачи):";
+    static final String CREATETOPIC_TOPIC_ALREADY_EXIST = "Такое домашнее задание уже существует, введите другое:";
     static final String CREATETOPIC_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите добавить домашнее задание \"%s\"? (да/нет)";
     static final String CREATETOPIC_CONFIRMATION_SUCCESS = "Новое домашнее задание добавлено в список\n/help";
     static final String CREATETOPIC_CONFIRMATION_FAILURE = "Не удалось добавить новое домашнее задание\n/help";
@@ -34,9 +36,10 @@ public class Messages {
     static final String UPLOADSOLUTION_CONFIRMATION_SUCCESS = "Ваше решение успешно загружено\n/help";
     static final String UPLOADSOLUTION_CONFIRMATION_FAILURE = "Не удалось загрузить решение\n/help";
 
-    static final String LISTSOLUTIONS_SUBMITTED_TOPICS_LIST = "Список домашних заданий с загруженным решением: %s";
-    static final String LISTSOLUTIONS_NO_SUBMITTED_TOPICS = "Вы еще не загрузили ни одного домашнего задания\n/help";
+    static final String LISTSOLUTIONS_UNSOVLED_TOPICS_LIST = "Список домашних заданий, ожидающих вашего решения: %s";
+    static final String LISTSOLUTIONS_NO_UNSOLVED_TOPICS = "Вы решили все возможные домашние задания (партия довольна)\n/help";
 
+    static final String DUMPSOLUTIONS_NO_SUBMISSIONS = "Нет загруженных решений для выгрузки";
     static final String DUMPSOLUTIONS_START_DUMP = "Начинаю выгрузку решений... \n(это может занять некоторое время)";
     static final String DUMPSOLUTIONS_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
 

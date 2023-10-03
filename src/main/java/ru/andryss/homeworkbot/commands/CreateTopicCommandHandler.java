@@ -87,6 +87,13 @@ public class CreateTopicCommandHandler implements CommandHandler {
         }
 
         String topic = update.getMessage().getText();
+
+        if (topicService.topicExists(topic)) {
+            sendMessage(update, sender, CREATETOPIC_TOPIC_ALREADY_EXIST);
+            userToState.put(userId, WAITING_FOR_TOPIC_NAME);
+            return;
+        }
+
         userToCreatedTopic.put(userId, topic);
 
         sendMessageWithKeyboard(update, sender, String.format(CREATETOPIC_ASK_FOR_CONFIRMATION, topic), YES_NO_BUTTONS);

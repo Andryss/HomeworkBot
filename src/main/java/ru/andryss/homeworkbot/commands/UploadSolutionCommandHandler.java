@@ -103,7 +103,8 @@ public class UploadSolutionCommandHandler implements CommandHandler {
         List<String> availableTopics = userToAvailableTopics.get(userId);
 
         if (!availableTopics.contains(topic)) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, List.of(availableTopics));
+            List<List<String>> availableTopicsKeyboard = availableTopics.stream().map(List::of).toList();
+            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, availableTopicsKeyboard);
             userToState.put(userId, WAITING_FOR_TOPIC_NAME);
             return;
         }

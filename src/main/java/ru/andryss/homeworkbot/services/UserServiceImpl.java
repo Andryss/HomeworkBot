@@ -12,6 +12,11 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
+    public boolean userNameExists(String name) {
+        return userRepository.existsByName(name);
+    }
+
+    @Override
     public void putUserName(Long id, String name) {
         UserEntity user = userRepository.findById(id).orElse(new UserEntity(id, name));
         user.setName(name);
