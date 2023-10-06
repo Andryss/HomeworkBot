@@ -33,6 +33,7 @@ import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_CONFIRMATI
 import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_CONFIRMATION_SUCCESS;
 import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_ERROR_OCCURED;
 import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_NO_AVAILABLE_TOPICS;
+import static ru.andryss.homeworkbot.commands.Messages.UPLOADSOLUTION_SUBMISSION_RULES;
 import static ru.andryss.homeworkbot.commands.Messages.YES_ANSWER;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.downloadFile;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendDocument;
@@ -53,7 +54,6 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
 
     private final Map<Long, Integer> userToState = new ConcurrentHashMap<>();
-    private final Map<Long, Runnable> userToOnExitHandler = new ConcurrentHashMap<>();
     private final Map<Long, List<String>> userToAvailableTopics = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedTopic = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedFile = new ConcurrentHashMap<>();
@@ -132,6 +132,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
         userToUploadedTopic.put(userId, topic);
 
+        sendMessage(update, sender, UPLOADSOLUTION_SUBMISSION_RULES);
         sendMessage(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION);
         userToState.put(userId, WAITING_FOR_SUBMISSION);
     }

@@ -30,7 +30,8 @@ public class Messages {
     static final String UPLOADSOLUTION_NO_AVAILABLE_TOPICS = "Нет доступных домашних заданий для сдачи";
     static final String UPLOADSOLUTION_AVAILABLE_TOPICS_LIST = "Список доступных домашних заданий для сдачи: %s";
     static final String UPLOADSOLUTION_ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания, которое хотите сдать:";
-    static final String UPLOADSOLUTION_ASK_FOR_SUBMISSION = "Пожалуйста, загрузите ваше решение в виде документа:";
+    static final String UPLOADSOLUTION_SUBMISSION_RULES = "Правила загрузки решения:\n1. Размер решения не должен привышать 10 мб\n2. Допустимые форматы: pdf,doc документ, jpeg или png картинка (можно приложить, как фото или документ), текстовое сообщение\n3. Группа фотографий НЕ поддерживается. Для конвертации в pdf-документ можете воспользоваться [www.ilovepdf.com]";
+    static final String UPLOADSOLUTION_ASK_FOR_SUBMISSION = "Пожалуйста, загрузите ваше решение:";
     static final String UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION = "Пожалуйста, загрузите ваше решение в виде документа:";
     static final String UPLOADSOLUTION_ERROR_OCCURED = "При загрузке решения произошла ошибка (попробуйте еще раз позже)";
     static final String UPLOADSOLUTION_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите загрузить такое решение, как ответ на \"%s\"? (да/нет)";
