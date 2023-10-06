@@ -41,7 +41,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWi
 
 @Component
 @RequiredArgsConstructor
-public class UploadSolutionCommandHandler implements CommandHandler {
+public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/uploadsolution", "загрузить решение домашнего задания");
@@ -64,26 +64,25 @@ public class UploadSolutionCommandHandler implements CommandHandler {
 
 
     @Override
-    public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
+    protected void onCommandReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
 
         if (userService.getUserName(userId) == null) {
             sendMessage(update, sender, REGISTER_FIRST);
-            onExitHandler.run();
+            exitForUser(userId);
             return;
         }
 
         List<String> availableTopics = submissionService.listAvailableTopics(userId);
         if (availableTopics.isEmpty()) {
             sendMessage(update, sender, UPLOADSOLUTION_NO_AVAILABLE_TOPICS);
-            onExitHandler.run();
+            exitForUser(userId);
             return;
         }
         userToAvailableTopics.put(userId, availableTopics);
 
         onGetCommandAndAvailableTopics(update, sender);
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
-        userToOnExitHandler.put(userId, onExitHandler);
     }
 
     @Override
@@ -250,7 +249,7 @@ public class UploadSolutionCommandHandler implements CommandHandler {
             userToUploadedTopic.remove(userId);
             userToUploadedFile.remove(userId);
             userToUploadedFileExtension.remove(userId);
-            userToOnExitHandler.remove(userId).run();
+            exitForUser(userId);
             return;
         }
 
@@ -261,6 +260,6 @@ public class UploadSolutionCommandHandler implements CommandHandler {
         userToUploadedTopic.remove(userId);
         userToUploadedFile.remove(userId);
         userToUploadedFileExtension.remove(userId);
-        userToOnExitHandler.remove(userId).run();
+        exitForUser(userId);
     }
 }

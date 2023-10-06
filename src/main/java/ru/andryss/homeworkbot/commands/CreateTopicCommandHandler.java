@@ -20,7 +20,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWi
 
 @Component
 @RequiredArgsConstructor
-public class CreateTopicCommandHandler implements CommandHandler {
+public class CreateTopicCommandHandler extends AbstractCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/createtopic", "добавить домашнее задание (для старосты)");
@@ -31,7 +31,6 @@ public class CreateTopicCommandHandler implements CommandHandler {
     private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
 
     private final Map<Long, Integer> userToState = new ConcurrentHashMap<>();
-    private final Map<Long, Runnable> userToOnExitHandler = new ConcurrentHashMap<>();
     private final Map<Long, String> userToCreatedTopic = new ConcurrentHashMap<>();
 
     private final UserService userService;
@@ -40,25 +39,24 @@ public class CreateTopicCommandHandler implements CommandHandler {
 
 
     @Override
-    public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
+    protected void onCommandReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
         String username = update.getMessage().getFrom().getUserName();
 
         if (userService.getUserName(userId) == null) {
             sendMessage(update, sender, REGISTER_FIRST);
-            onExitHandler.run();
+            exitForUser(userId);
             return;
         }
 
         if (!leaderService.isLeader(username)) {
             sendMessage(update, sender, NOT_LEADER);
-            onExitHandler.run();
+            exitForUser(userId);
             return;
         }
 
         onGetCommand(update, sender);
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
-        userToOnExitHandler.put(userId, onExitHandler);
     }
 
     @Override
@@ -115,7 +113,7 @@ public class CreateTopicCommandHandler implements CommandHandler {
             sendMessage(update, sender, CREATETOPIC_CONFIRMATION_FAILURE);
             userToState.remove(userId);
             userToCreatedTopic.remove(userId);
-            userToOnExitHandler.remove(userId).run();
+            exitForUser(userId);
             return;
         }
 
@@ -123,6 +121,6 @@ public class CreateTopicCommandHandler implements CommandHandler {
         sendMessage(update, sender, CREATETOPIC_CONFIRMATION_SUCCESS);
         userToState.remove(userId);
         userToCreatedTopic.remove(userId);
-        userToOnExitHandler.remove(userId).run();
+        exitForUser(userId);
     }
 }
