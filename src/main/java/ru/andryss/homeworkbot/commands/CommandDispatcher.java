@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Entrypoint for all received events.
+ * Extracts command from message and dispatches event to corresponding handler.
+ */
 @Component
 public class CommandDispatcher extends TelegramLongPollingBot {
 

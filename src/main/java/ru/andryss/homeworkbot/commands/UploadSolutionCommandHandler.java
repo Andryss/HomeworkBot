@@ -67,7 +67,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     protected void onCommandReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
 
-        if (userService.getUserName(userId) == null) {
+        if (userService.getUserName(userId).isEmpty()) {
             sendMessage(update, sender, REGISTER_FIRST);
             exitForUser(userId);
             return;
@@ -148,7 +148,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             } else if (update.getMessage().hasPhoto()) {
                 submission = extractPhoto(update, sender);
             } else if (update.getMessage().hasText()) {
-                submission = extractText(update, sender);
+                submission = extractText(update);
             }
         } catch (IOException e) {
             sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
@@ -179,7 +179,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
     private File extractDocument(Update update, AbsSender sender) throws TelegramApiException, IOException {
         Long id = update.getMessage().getFrom().getId();
-        String userName = userService.getUserName(id);
+        String userName = userService.getUserName(id).orElseThrow();
 
         Document document = update.getMessage().getDocument();
         String documentFileName = document.getFileName();
@@ -199,7 +199,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
     private File extractPhoto(Update update, AbsSender sender) throws TelegramApiException, IOException {
         Long id = update.getMessage().getFrom().getId();
-        String userName = userService.getUserName(id);
+        String userName = userService.getUserName(id).orElseThrow();
         String fileName = userName + ".pdf";
         File submission = new File(fileName);
         if (!submission.createNewFile()) {
@@ -214,9 +214,9 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         return submission;
     }
 
-    private File extractText(Update update, AbsSender sender) throws IOException {
+    private File extractText(Update update) throws IOException {
         Long id = update.getMessage().getFrom().getId();
-        String userName = userService.getUserName(id);
+        String userName = userService.getUserName(id).orElseThrow();
         String fileName = userName + ".txt";
         File submission = new File(fileName);
         if (!submission.createNewFile()) {

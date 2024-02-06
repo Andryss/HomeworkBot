@@ -4,6 +4,9 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+/**
+ * Abstract handler for commands which perform single action
+ */
 public abstract class SingleActionCommandHandler extends AbstractCommandHandler {
 
     @Override
@@ -18,5 +21,11 @@ public abstract class SingleActionCommandHandler extends AbstractCommandHandler 
         /* unreachable */
     }
 
+    /**
+     * Called when command was received
+     *
+     * @param update received event
+     * @param sender class for executing api calls
+     */
     protected abstract void onReceived(Update update, AbsSender sender) throws TelegramApiException;
 }

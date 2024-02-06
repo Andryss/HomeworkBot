@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import ru.andryss.homeworkbot.entities.UserEntity;
 import ru.andryss.homeworkbot.repositories.UserRepository;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -24,7 +26,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String getUserName(Long id) {
-        return userRepository.findById(id).map(UserEntity::getName).orElse(null);
+    public Optional<String> getUserName(Long id) {
+        return userRepository.findById(id).map(UserEntity::getName);
     }
 }

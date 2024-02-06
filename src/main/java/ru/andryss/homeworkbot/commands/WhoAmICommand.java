@@ -10,6 +10,8 @@ import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 import ru.andryss.homeworkbot.services.UserService;
 
 
+import java.util.Optional;
+
 import static ru.andryss.homeworkbot.commands.Messages.*;
 
 @Component
@@ -25,12 +27,12 @@ public class WhoAmICommand extends SingleActionCommandHandler {
     @Override
     protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
-        String userName = userService.getUserName(userId);
+        Optional<String> userName = userService.getUserName(userId);
 
-        if (userName == null) {
+        if (userName.isEmpty()) {
             AbsSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
         } else {
-            AbsSenderUtils.sendMessage(update, sender, String.format(WHOAMI_ANSWER, userName));
+            AbsSenderUtils.sendMessage(update, sender, String.format(WHOAMI_ANSWER, userName.get()));
         }
     }
 }

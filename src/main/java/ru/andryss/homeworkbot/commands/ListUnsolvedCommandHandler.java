@@ -26,7 +26,7 @@ public class ListUnsolvedCommandHandler extends SingleActionCommandHandler {
     @Override
     protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getChatId();
-        List<String> unsolvedTopics = submissionService.listUnsolvedTopics(userId);
+        List<String> unsolvedTopics = submissionService.listAvailableTopics(userId);
 
         if (unsolvedTopics.isEmpty()) {
             sendMessage(update, sender, LISTUNSOLVED_NO_UNSOLVED_TOPICS);

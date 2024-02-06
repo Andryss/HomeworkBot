@@ -49,7 +49,7 @@ public class DumpSolutionsCommandHandler extends SingleActionCommandHandler {
         Long userId = update.getMessage().getFrom().getId();
         String username = update.getMessage().getFrom().getUserName();
 
-        if (userService.getUserName(userId) == null) {
+        if (userService.getUserName(userId).isEmpty()) {
             sendMessage(update, sender, REGISTER_FIRST);
             return;
         }

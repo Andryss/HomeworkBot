@@ -1,6 +1,13 @@
 package ru.andryss.homeworkbot.commands;
 
+/**
+ * Class containing all messages the bot can send
+ */
 public class Messages {
+
+    private Messages() {
+        throw new UnsupportedOperationException("util class");
+    }
 
     // Common messages block
     static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";

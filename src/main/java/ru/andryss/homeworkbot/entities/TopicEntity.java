@@ -8,6 +8,9 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entity describing topic
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,16 +19,25 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "topics")
 public class TopicEntity {
+    /**
+     * Topic identifier
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    /**
+     * Topic name
+     */
     private String name;
-
+    /**
+     * User who created this topic
+     */
     @ManyToOne
     @JoinColumn(name = "created_user_id", referencedColumnName = "id")
     private UserEntity createdUser;
-
+    /**
+     * Creation timestamp
+     */
     @Column(name = "create_datetime", nullable = false)
     private LocalDateTime createDatetime;
 }
