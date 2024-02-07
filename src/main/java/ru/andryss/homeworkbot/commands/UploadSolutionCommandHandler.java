@@ -1,15 +1,10 @@
 package ru.andryss.homeworkbot.commands;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfWriter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,11 +19,16 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.SubmissionService;
 import ru.andryss.homeworkbot.services.UserService;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.downloadFile;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendDocument;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 
 @Slf4j
 @Component
@@ -48,9 +48,8 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     private final Map<Long, List<String>> userToAvailableTopics = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedTopic = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedFile = new ConcurrentHashMap<>();
+    private final Map<Long, UploadPhotoInfo> userToUploadPhotoInfo = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedFileExtension = new ConcurrentHashMap<>();
-
-    private static final int SIZE_5MB = 5 * 1024 * 1024;
 
     private final UserService userService;
     private final SubmissionService submissionService;
@@ -131,6 +130,10 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     }
 
     private void onGetSubmission(Update update, AbsSender sender) throws TelegramApiException {
+        if (update.getMessage().hasPhoto() && update.getMessage().getMediaGroupId() != null) {
+            collectPhoto(update, sender);
+            return;
+        }
         sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
 
         Long userId = update.getMessage().getFrom().getId();
@@ -141,14 +144,16 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         try {
             tmpDir = Files.createTempDirectory("submission").toFile();
             String tmpDirPrefix = tmpDir.getAbsolutePath() + '/';
-            File submission = null;
 
+            File submission;
             if (update.getMessage().hasDocument()) {
                 submission = extractDocument(tmpDirPrefix, update, sender);
             } else if (update.getMessage().hasPhoto()) {
                 submission = extractPhoto(tmpDirPrefix, update, sender);
             } else if (update.getMessage().hasText()) {
                 submission = extractText(tmpDirPrefix, update);
+            } else {
+                submission = null;
             }
 
             if (submission == null) {
@@ -179,13 +184,101 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
     }
 
+    private void collectPhoto(Update update, AbsSender sender) throws TelegramApiException {
+        Long id = update.getMessage().getFrom().getId();
+
+        if (!userToUploadPhotoInfo.containsKey(id)) {
+            sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
+        }
+
+        UploadPhotoInfo uploadInfo = userToUploadPhotoInfo.computeIfAbsent(id, l -> new UploadPhotoInfo(l, new ArrayList<>(), null));
+        Thread callback = uploadInfo.getCallback();
+        if (callback != null) {
+            callback.interrupt();
+            try {
+                callback.join();
+            } catch (InterruptedException e) {
+                return;
+            }
+        }
+
+        uploadInfo.getPhotos().add(update.getMessage().getPhoto().stream()
+                .max(Comparator.comparingInt(PhotoSize::getFileSize))
+                .orElseThrow()
+        );
+
+        uploadInfo.setCallback(new Thread(() -> {
+            try {
+                Thread.sleep(1_000);
+                handlePhotoGroup(update, sender, id);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }));
+
+        uploadInfo.getCallback().start();
+    }
+
+    private void handlePhotoGroup(Update update, AbsSender sender, Long userId) {
+        UploadPhotoInfo uploadInfo = userToUploadPhotoInfo.get(userId);
+        List<PhotoSize> photoSizes = uploadInfo.getPhotos();
+
+        String userName = userService.getUserName(userId).orElseThrow();
+
+        File tmpDir = null;
+        try {
+            tmpDir = Files.createTempDirectory("submission").toFile();
+
+            String fileName = tmpDir.getAbsolutePath() + '/' + userName + ".pdf";
+
+            try (FileOutputStream fos = new FileOutputStream(fileName)) {
+                com.itextpdf.text.Document document = new com.itextpdf.text.Document(new Rectangle(0, 0), 0, 0, 0, 0);
+                PdfWriter writer = PdfWriter.getInstance(document, fos);
+
+                writer.open();
+                document.open();
+
+                for (PhotoSize photoSize : photoSizes) {
+                    File image = new File(tmpDir.getAbsolutePath() + photoSize.getFileUniqueId());
+                    if (!image.createNewFile()) {
+                        throw new IOException("can't create file " + image.getAbsolutePath());
+                    }
+
+                    downloadFile(sender, photoSize.getFileId(), image);
+
+                    document.setPageSize(new Rectangle(photoSize.getWidth(), photoSize.getHeight()));
+                    document.newPage();
+                    document.add(Image.getInstance(image.getAbsolutePath()));
+                }
+
+                document.close();
+                writer.close();
+            }
+
+            Message message = sendDocument(update, sender, new File(fileName));
+
+            userToUploadPhotoInfo.remove(userId);
+
+            userToUploadedFile.put(userId, message.getDocument().getFileId());
+
+            userToUploadedFileExtension.put(userId, ".pdf");
+
+            sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
+            userToState.put(userId, WAITING_FOR_CONFIRMATION);
+        } catch (Exception e) {
+            log.error("exception occurred during photo group handling", e);
+        } finally {
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
     private File extractDocument(String tmpDirPrefix, Update update, AbsSender sender) throws TelegramApiException, IOException {
         Long id = update.getMessage().getFrom().getId();
         String userName = userService.getUserName(id).orElseThrow();
 
         Document document = update.getMessage().getDocument();
         Long fileSize = document.getFileSize();
-        if (fileSize > SIZE_5MB) {
+        if (fileSize > 5 * 1024 * 1024) {
             sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE);
             return null;
         }
@@ -209,14 +302,9 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         Long id = update.getMessage().getFrom().getId();
 
         List<PhotoSize> photoSizes = update.getMessage().getPhoto();
-        Optional<PhotoSize> biggestPhotoSize = photoSizes.stream()
-                .filter(photo -> photo.getFileSize() <= SIZE_5MB)
-                .max(Comparator.comparingInt(PhotoSize::getFileSize));
-
-        if (biggestPhotoSize.isEmpty()) {
-            sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE);
-            return null;
-        }
+        PhotoSize biggestPhotoSize = photoSizes.stream()
+                .max(Comparator.comparingInt(PhotoSize::getFileSize))
+                .orElseThrow();
 
         String userName = userService.getUserName(id).orElseThrow();
         String fileName = tmpDirPrefix + userName + ".pdf";
@@ -225,7 +313,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             throw new IOException("can't create file " + submission.getAbsolutePath());
         }
 
-        downloadFile(sender, biggestPhotoSize.get().getFileId(), submission);
+        downloadFile(sender, biggestPhotoSize.getFileId(), submission);
 
         return submission;
     }
@@ -278,5 +366,13 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         userToUploadedFile.remove(userId);
         userToUploadedFileExtension.remove(userId);
         exitForUser(userId);
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class UploadPhotoInfo {
+        private long userId;
+        private List<PhotoSize> photos;
+        private Thread callback;
     }
 }
