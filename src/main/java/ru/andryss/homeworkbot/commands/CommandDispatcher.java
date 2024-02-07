@@ -2,6 +2,7 @@ package ru.andryss.homeworkbot.commands;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -12,16 +13,19 @@ import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static ru.andryss.homeworkbot.commands.Messages.DISPATCHER_NO_COMMAND;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
+
 /**
  * Entrypoint for all received events.
  * Extracts command from message and dispatches event to corresponding handler.
  */
+@Slf4j
 @Component
 public class CommandDispatcher extends TelegramLongPollingBot {
 
@@ -32,10 +36,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     private final Map<String, CommandHandler> handlerByCommand = new ConcurrentHashMap<>();
     private final Map<Long, String> userToCommand = new ConcurrentHashMap<>();
 
-    private static final String PRIVATE_CHAT_TYPE = "private";
-    private static final String HELP_COMMAND = "/help";
     private static final String NO_COMMAND = "";
-    private static final String COMMAND_TYPE = "bot_command";
 
     public CommandDispatcher(
             @Value("${bot.telegram.api.token}") String botToken,
@@ -49,23 +50,17 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
     @PostConstruct
     private void init() {
-        createHandlerMap();
-        initHelpCommand();
-    }
-
-    private void createHandlerMap() {
         commandHandlers.forEach(handler -> handlerByCommand.put(handler.getCommandInfo().getName(), handler));
-    }
-
-    private void initHelpCommand() {
-        handlerByCommand.put(HELP_COMMAND, new HelpCommandHandler(commandHandlers));
+        handlerByCommand.put("/help", new HelpCommandHandler(commandHandlers));
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        System.out.println("Received: " + update);
-        if (!isPrivateMessage(update)) {
-            onUnknownUpdate(update); return;
+        log.info("Received: {}", update);
+
+        if (!update.hasMessage() || !update.getMessage().getChat().getType().equals("private")) {
+            log.warn("Unknown update, skipping: {}", update);
+            return;
         }
 
         Message message = update.getMessage();
@@ -82,16 +77,16 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             try {
                 handlerByCommand.get(userCommand).onUpdateReceived(update, this);
             } catch (TelegramApiException e) {
-                onTelegramApiException(update, e);
+                log.error("TelegramApiException during update", e);
             } catch (Exception e) {
-                onUnknownException(update, e);
+                log.error("Exception during update", e);
             }
             return;
         }
 
         CommandHandler commandHandler = handlerByCommand.get(command);
         if (commandHandler == null) {
-            onUnknownCommandUpdate(update);
+            log.warn("Unknown command {} update: {}", command, update);
             return;
         }
 
@@ -100,60 +95,38 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         try {
             commandHandler.onCommandReceived(update, this, () -> userToCommand.put(userId, NO_COMMAND));
         } catch (TelegramApiException e) {
-            onTelegramApiException(update, e);
+            log.error("TelegramApiException during update", e);
         }
     }
 
-    private boolean isPrivateMessage(Update update) {
-        return update.hasMessage() && update.getMessage().getChat().getType().equals(PRIVATE_CHAT_TYPE);
-    }
-
-    private void onUnknownUpdate(Update update) {
-        System.out.println("Unknown update: " + update); // TODO: replace with logging
-    }
-
     private void onNoCommandUpdate(Update update) {
-        System.out.println("No command update: " + update);
+        log.warn("No command update: {}", update);
 
         SendMessage message = new SendMessage();
         message.setChatId(update.getMessage().getChatId());
-        message.setText("К сожалению, я умею отвечать только на команды\n/help");
+        message.setText(DISPATCHER_NO_COMMAND);
 
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            onTelegramApiException(update, e);
+            log.error("TelegramApiException during update", e);
         }
-    }
-
-    private void onUnknownCommandUpdate(Update update) {
-        System.out.println("Unknown command update: " + update);
-    }
-
-    private void onTelegramApiException(Update update, TelegramApiException e) {
-        System.out.println("TelegramApiException during update: " + update);
-        e.printStackTrace();
-    }
-
-    private void onUnknownException(Update update, Exception e) {
-        System.out.println("Exception during update: " + update);
-        e.printStackTrace();
     }
 
     private String extractCommand(Message message) {
         if (!message.hasEntities()) return NO_COMMAND;
         for (MessageEntity messageEntity : message.getEntities()) {
-            if (COMMAND_TYPE.equals(messageEntity.getType())) {
+            if (messageEntity.getType().equals("bot_command")) {
                 return messageEntity.getText();
             }
         }
         return NO_COMMAND;
     }
 
-    private static class HelpCommandHandler implements CommandHandler {
+    private static class HelpCommandHandler extends SingleActionCommandHandler {
 
         @Getter
-        private final CommandInfo commandInfo = new CommandInfo(HELP_COMMAND, "вывести список всех команд"); // TODO: extract text to some Message class
+        private final CommandInfo commandInfo = new CommandInfo("/help", "вывести список всех команд");
         private final String helpMessage;
 
         HelpCommandHandler(List<CommandHandler> commandHandlers) {
@@ -171,14 +144,8 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         }
 
         @Override
-        public void onCommandReceived(Update update, AbsSender sender, Runnable onExitHandler) throws TelegramApiException {
-            AbsSenderUtils.sendMessage(update, sender, helpMessage);
-            onExitHandler.run();
-        }
-
-        @Override
-        public void onUpdateReceived(Update update, AbsSender sender) {
-
+        protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
+            sendMessage(update, sender, helpMessage);
         }
     }
 }

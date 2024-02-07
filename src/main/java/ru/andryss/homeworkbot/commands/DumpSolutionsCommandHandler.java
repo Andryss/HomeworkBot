@@ -1,15 +1,5 @@
 package ru.andryss.homeworkbot.commands;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.time.Instant;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
@@ -23,14 +13,15 @@ import ru.andryss.homeworkbot.services.SubmissionService.SubmissionDto;
 import ru.andryss.homeworkbot.services.SubmissionService.TopicSubmissionsDto;
 import ru.andryss.homeworkbot.services.UserService;
 
-import static ru.andryss.homeworkbot.commands.Messages.DUMPSOLUTIONS_ERROR_OCCURED;
-import static ru.andryss.homeworkbot.commands.Messages.DUMPSOLUTIONS_NO_SUBMISSIONS;
-import static ru.andryss.homeworkbot.commands.Messages.DUMPSOLUTIONS_START_DUMP;
-import static ru.andryss.homeworkbot.commands.Messages.NOT_LEADER;
-import static ru.andryss.homeworkbot.commands.Messages.REGISTER_FIRST;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.downloadFile;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendDocument;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
+import java.io.*;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import static ru.andryss.homeworkbot.commands.Messages.*;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 
 @Component
 @RequiredArgsConstructor
@@ -78,12 +69,9 @@ public class DumpSolutionsCommandHandler extends SingleActionCommandHandler {
 
         sendMessage(update, sender, DUMPSOLUTIONS_START_DUMP);
 
-        File dumpDir = new File("dump_" + update.getUpdateId() + "_" + Instant.now().toString());
-        if (!dumpDir.mkdir()) {
-            throw new IOException("can't create dir " + dumpDir.getAbsolutePath());
-        }
+        File dumpDir = Files.createTempDirectory("dump").toFile();
 
-        File zipArchive = new File(dumpDir.getAbsolutePath() + "/archive_" + Instant.now() + ".zip");
+        File zipArchive = new File(dumpDir.getAbsolutePath() + "/archive_" + Instant.now().toEpochMilli() + ".zip");
         ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipArchive));
 
         for (TopicSubmissionsDto topicSubmissionsDto : topicSubmissionsDtoList) {

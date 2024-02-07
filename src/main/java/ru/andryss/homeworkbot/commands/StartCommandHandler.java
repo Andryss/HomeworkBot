@@ -1,19 +1,18 @@
 package ru.andryss.homeworkbot.commands;
 
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.UserService;
 
-import static ru.andryss.homeworkbot.commands.Messages.START_ALREADY_REGISTERED;
-import static ru.andryss.homeworkbot.commands.Messages.START_ANSWER_FOR_FIRSTNAME_LASTNAME;
-import static ru.andryss.homeworkbot.commands.Messages.START_ASK_FOR_FIRSTNAME_LASTNAME;
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
+@RequiredArgsConstructor
 public class StartCommandHandler extends AbstractCommandHandler {
 
     @Getter
@@ -21,10 +20,6 @@ public class StartCommandHandler extends AbstractCommandHandler {
 
     private final UserService userService;
 
-    @Autowired
-    public StartCommandHandler(UserService userService) {
-        this.userService = userService;
-    }
 
     @Override
     protected void onCommandReceived(Update update, AbsSender sender) throws TelegramApiException {

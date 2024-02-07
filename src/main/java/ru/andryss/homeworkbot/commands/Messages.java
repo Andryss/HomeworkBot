@@ -9,6 +9,9 @@ public class Messages {
         throw new UnsupportedOperationException("util class");
     }
 
+    // Dispatcher blok
+    static final String DISPATCHER_NO_COMMAND = "К сожалению, я умею отвечать только на команды\n/help";
+
     // Common messages block
     static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";
     static final String NOT_LEADER = "Вы не являетесь старостой";
@@ -37,8 +40,10 @@ public class Messages {
     static final String UPLOADSOLUTION_NO_AVAILABLE_TOPICS = "Нет доступных домашних заданий для сдачи";
     static final String UPLOADSOLUTION_AVAILABLE_TOPICS_LIST = "Список доступных домашних заданий для сдачи: %s";
     static final String UPLOADSOLUTION_ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания, которое хотите сдать:";
-    static final String UPLOADSOLUTION_SUBMISSION_RULES = "Правила загрузки решения:\n1. Размер решения не должен привышать 10 мб\n2. Допустимые форматы: pdf,doc документ, jpeg или png картинка (можно приложить, как фото или документ), текстовое сообщение\n3. Группа фотографий НЕ поддерживается. Для конвертации в pdf-документ можете воспользоваться [www.ilovepdf.com]";
+    static final String UPLOADSOLUTION_SUBMISSION_RULES = "Правила загрузки решения:\n1. Размер решения не должен привышать 5 мб\n2. Допустимые форматы: pdf или doc документ, jpeg или png картинка, текстовое сообщение\n3. Группа фотографий НЕ поддерживается. Для конвертации в pdf-документ можете воспользоваться [www.ilovepdf.com]";
     static final String UPLOADSOLUTION_ASK_FOR_SUBMISSION = "Пожалуйста, загрузите ваше решение:";
+    static final String UPLOADSOLUTION_LOADING_SUBMISSION = "Обрабатываю ваше решение...\n(это может занять некоторое время)";
+    static final String UPLOADSOLUTION_TOO_LARGE_FILE = "Размер файла превышает 5 мб!";
     static final String UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION = "Пожалуйста, загрузите ваше решение в виде документа:";
     static final String UPLOADSOLUTION_ERROR_OCCURED = "При загрузке решения произошла ошибка (попробуйте еще раз позже)";
     static final String UPLOADSOLUTION_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите загрузить такое решение, как ответ на \"%s\"? (да/нет)";
@@ -49,7 +54,7 @@ public class Messages {
     static final String LISTUNSOLVED_NO_UNSOLVED_TOPICS = "Вы решили все возможные домашние задания (партия довольна)\n/help";
 
     static final String DUMPSOLUTIONS_NO_SUBMISSIONS = "Нет загруженных решений для выгрузки";
-    static final String DUMPSOLUTIONS_START_DUMP = "Начинаю выгрузку решений... \n(это может занять некоторое время)";
+    static final String DUMPSOLUTIONS_START_DUMP = "Начинаю выгрузку решений...\n(это может занять некоторое время)";
     static final String DUMPSOLUTIONS_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
 
 }
