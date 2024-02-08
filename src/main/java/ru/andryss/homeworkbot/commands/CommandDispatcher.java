@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static ru.andryss.homeworkbot.commands.Messages.DISPATCHER_NO_COMMAND;
+import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 /**
@@ -63,53 +63,46 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             return;
         }
 
-        Message message = update.getMessage();
-        Long userId = message.getFrom().getId();
+        try {
+            Message message = update.getMessage();
+            Long userId = message.getFrom().getId();
 
-        String command = extractCommand(message);
-        if (command.equals(NO_COMMAND)) {
-            String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
-            if (userCommand.equals(NO_COMMAND)) {
-                onNoCommandUpdate(update);
+            String command = extractCommand(message);
+            if (command.equals(NO_COMMAND)) {
+                String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
+                if (userCommand.equals(NO_COMMAND)) {
+                    log.warn("No command update: {}", update);
+                    sendMessage(update, this, DISPATCHER_NO_COMMAND);
+                    return;
+                }
+
+                try {
+                    handlerByCommand.get(userCommand).onUpdateReceived(update, this);
+                } catch (Exception e) {
+                    log.error("Exception during update", e);
+                    sendMessage(update, this, DISPATCHER_HANDLER_ERROR);
+                }
                 return;
             }
 
-            try {
-                handlerByCommand.get(userCommand).onUpdateReceived(update, this);
-            } catch (TelegramApiException e) {
-                log.error("TelegramApiException during update", e);
-            } catch (Exception e) {
-                log.error("Exception during update", e);
+            CommandHandler commandHandler = handlerByCommand.get(command);
+            if (commandHandler == null) {
+                log.warn("Unknown command {} update: {}", command, update);
+                sendMessage(update, this, DISPATCHER_UNKNOWN_COMMAND);
+                return;
             }
-            return;
-        }
 
-        CommandHandler commandHandler = handlerByCommand.get(command);
-        if (commandHandler == null) {
-            log.warn("Unknown command {} update: {}", command, update);
-            return;
-        }
+            userToCommand.put(userId, command);
 
-        userToCommand.put(userId, command);
-
-        try {
             commandHandler.onCommandReceived(update, this, () -> userToCommand.put(userId, NO_COMMAND));
+
         } catch (TelegramApiException e) {
             log.error("TelegramApiException during update", e);
-        }
-    }
-
-    private void onNoCommandUpdate(Update update) {
-        log.warn("No command update: {}", update);
-
-        SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
-        message.setText(DISPATCHER_NO_COMMAND);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            log.error("TelegramApiException during update", e);
+            try {
+                sendMessage(update, this, DISPATCHER_ERROR);
+            } catch (TelegramApiException ex) {
+                // sadness :(
+            }
         }
     }
 

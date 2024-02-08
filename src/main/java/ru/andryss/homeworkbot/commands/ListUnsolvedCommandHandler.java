@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.SubmissionService;
+import ru.andryss.homeworkbot.services.UserService;
 
 import java.util.List;
 
@@ -21,11 +22,19 @@ public class ListUnsolvedCommandHandler extends SingleActionCommandHandler {
     private final CommandInfo commandInfo = new CommandInfo("/listunsolved", "вывести список нерешенных домашних заданий");
 
     private final SubmissionService submissionService;
+    private final UserService userService;
 
 
     @Override
     protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getChatId();
+
+        if (userService.getUserName(userId).isEmpty()) {
+            sendMessage(update, sender, REGISTER_FIRST);
+            exitForUser(userId);
+            return;
+        }
+
         List<String> unsolvedTopics = submissionService.listAvailableTopics(userId);
 
         if (unsolvedTopics.isEmpty()) {

@@ -1,9 +1,11 @@
 package ru.andryss.homeworkbot.commands;
 
+import com.itextpdf.text.Font;
 import com.itextpdf.text.Image;
+import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfWriter;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +23,16 @@ import ru.andryss.homeworkbot.services.UserService;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.itextpdf.text.pdf.BaseFont.EMBEDDED;
+import static com.itextpdf.text.pdf.BaseFont.IDENTITY_H;
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 
@@ -191,7 +197,11 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
         }
 
-        UploadPhotoInfo uploadInfo = userToUploadPhotoInfo.computeIfAbsent(id, l -> new UploadPhotoInfo(l, new ArrayList<>(), null));
+        UploadPhotoInfo uploadInfo = userToUploadPhotoInfo.computeIfAbsent(id, l -> new UploadPhotoInfo());
+        if (uploadInfo.isStarted()) {
+            return;
+        }
+
         Thread callback = uploadInfo.getCallback();
         if (callback != null) {
             callback.interrupt();
@@ -225,6 +235,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
         String userName = userService.getUserName(userId).orElseThrow();
 
+        uploadInfo.setStarted(true);
         File tmpDir = null;
         try {
             tmpDir = Files.createTempDirectory("submission").toFile();
@@ -321,19 +332,26 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     private File extractText(String tmpDirPrefix, Update update) throws IOException {
         Long id = update.getMessage().getFrom().getId();
         String userName = userService.getUserName(id).orElseThrow();
-        String fileName = tmpDirPrefix + userName + ".txt";
-        File submission = new File(fileName);
-        if (!submission.createNewFile()) {
-            throw new IOException("can't create file " + submission.getAbsolutePath());
+        String fileName = tmpDirPrefix + userName + ".pdf";
+
+        try (FileOutputStream fos = new FileOutputStream(fileName)) {
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+            PdfWriter writer = PdfWriter.getInstance(document, fos);
+
+            writer.open();
+            document.open();
+
+            String text = update.getMessage().getText();
+            Font font = new Font(BaseFont.createFont("/fonts/ArialRegular.ttf", IDENTITY_H, EMBEDDED));
+            document.add(new Paragraph(text, font));
+
+            document.close();
+            writer.close();
+        } catch (Exception e) {
+            throw new IOException(e);
         }
 
-        String text = update.getMessage().getText();
-
-        try (FileWriter writer = new FileWriter(submission)) {
-            writer.write(text);
-        }
-
-        return submission;
+        return new File(fileName);
     }
 
     private void onGetConfirmation(Update update, AbsSender sender) throws TelegramApiException {
@@ -369,10 +387,9 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     }
 
     @Data
-    @AllArgsConstructor
     private static class UploadPhotoInfo {
-        private long userId;
-        private List<PhotoSize> photos;
+        private List<PhotoSize> photos = new ArrayList<>();
+        private volatile boolean started = false;
         private Thread callback;
     }
 }

@@ -8,6 +8,8 @@ import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.UserService;
 
+import java.util.regex.Pattern;
+
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
@@ -17,6 +19,8 @@ public class StartCommandHandler extends AbstractCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/start", "зарегистрировать (переименовать) пользователя");
+
+    private static final Pattern userNamePattern = Pattern.compile("[\\p{L} \\-]+");
 
     private final UserService userService;
 
@@ -29,7 +33,12 @@ public class StartCommandHandler extends AbstractCommandHandler {
     @Override
     public void onUpdateReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
-        String userName = update.getMessage().getText();
+        String userName = update.getMessage().getText().trim();
+
+        if (!userNamePattern.matcher(userName).matches()) {
+            sendMessage(update, sender, START_ILLEGAL_CHARACTERS);
+            return;
+        }
 
         if (userService.userNameExists(userName)) {
             sendMessage(update, sender, START_ALREADY_REGISTERED);

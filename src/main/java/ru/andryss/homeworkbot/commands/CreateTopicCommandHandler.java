@@ -13,6 +13,7 @@ import ru.andryss.homeworkbot.services.UserService;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
@@ -24,6 +25,8 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/createtopic", "добавить домашнее задание (для старосты)");
+
+    private static final Pattern topicPattern = Pattern.compile("[\\p{L}\\d _\\-]+");
 
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_CONFIRMATION = 1;
@@ -80,15 +83,18 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
 
         if (!update.getMessage().hasText()) {
             sendMessage(update, sender, ASK_FOR_RESENDING_TOPIC);
-            userToState.put(userId, WAITING_FOR_TOPIC_NAME);
             return;
         }
 
-        String topic = update.getMessage().getText();
+        String topic = update.getMessage().getText().trim();
+
+        if (!topicPattern.matcher(topic).matches()) {
+            sendMessage(update, sender, CREATETOPIC_TOPIC_ILLEGAL_CHARACTERS);
+            return;
+        }
 
         if (topicService.topicExists(topic)) {
             sendMessage(update, sender, CREATETOPIC_TOPIC_ALREADY_EXIST);
-            userToState.put(userId, WAITING_FOR_TOPIC_NAME);
             return;
         }
 
