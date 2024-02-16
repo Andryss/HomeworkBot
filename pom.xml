@@ -19,7 +19,9 @@
     <properties>
         <java.version>17</java.version>
         <telegrambots.version>6.8.0</telegrambots.version>
-        <itext.version>5.5.13.3</itext.version>
+        <itext.version>8.0.3</itext.version>
+        <poi.version>3.12</poi.version>
+        <xdocreport.version>1.0.6</xdocreport.version>
     </properties>
 
     <dependencies>
@@ -66,8 +68,33 @@
 
         <dependency>
             <groupId>com.itextpdf</groupId>
-            <artifactId>itextpdf</artifactId>
+            <artifactId>itext7-core</artifactId>
             <version>${itext.version}</version>
+            <type>pom</type>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-scratchpad</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fr.opensagres.xdocreport</groupId>
+            <artifactId>org.apache.poi.xwpf.converter.pdf</artifactId>
+            <version>${xdocreport.version}</version>
         </dependency>
 
     </dependencies>

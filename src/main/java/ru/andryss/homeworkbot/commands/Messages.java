@@ -22,6 +22,7 @@ public class Messages {
     static final String YES_ANSWER = "да";
     static final String NO_ANSWER = "нет";
     static final String ASK_FOR_RESENDING_CONFIRMATION = "Пожалуйста, выберите \"да\" или \"нет\":";
+    static final String STOP_WORD = "стоп-слово";
 
 
     // Specific messages block (starts with "<COMMAND_NAME>_")
@@ -45,11 +46,13 @@ public class Messages {
     static final String UPLOADSOLUTION_NO_AVAILABLE_TOPICS = "Нет доступных домашних заданий для сдачи";
     static final String UPLOADSOLUTION_AVAILABLE_TOPICS_LIST = "Список доступных домашних заданий для сдачи: %s";
     static final String UPLOADSOLUTION_ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания, которое хотите сдать:";
-    static final String UPLOADSOLUTION_SUBMISSION_RULES = "Правила загрузки решения:\n1. Размер решения не должен превышать 5 мб\n2. Допустимые форматы: pdf или doc документ, jpeg или png фотография, текстовое сообщение (до 4096 символов)\n3. Группа фотографий поддерживается\nДля конвертации фотографий в pdf-документ можете воспользоваться бесплатным ресурсом [www.ilovepdf.com]";
-    static final String UPLOADSOLUTION_ASK_FOR_SUBMISSION = "Пожалуйста, загрузите ваше решение:";
+    static final String UPLOADSOLUTION_SUBMISSION_RULES = "Правила загрузки решения:\n1. Решение загружается одним файлом или по частям (конвертируется в pdf)\n2. Размер решения не должен превышать 5 мб\n3. Допустимые форматы: pdf или docx документ, jpeg или png фотография, текстовое сообщение (до 4096 символов)\nДля конвертации в pdf-документ можете воспользоваться бесплатным ресурсом [www.ilovepdf.com]";
+    static final String UPLOADSOLUTION_ASK_FOR_SUBMISSION = "Пожалуйста, загрузите ваше решение:\n(по окончании загрузки отправьте \"стоп-слово\")";
+    static final String UPLOADSOLUTION_EMPTY_SUBMISSION = "Пожалуйста, сначала загрузите ваше решение:";
+    static final String UPLOADSOLUTION_INCORRECT_COMBINATION = "Нельзя добавить файл этого формата к уже отправленным";
     static final String UPLOADSOLUTION_LOADING_SUBMISSION = "Обрабатываю ваше решение...\n(это может занять некоторое время)";
+    static final String UPLOADSOLUTION_TOO_LARGE_MERGED_FILE = "Размер итогового файла превышает 5 мб!\nПожалуйста сожмите файлы и попробуйте снова";
     static final String UPLOADSOLUTION_TOO_LARGE_FILE = "Размер файла превышает 5 мб!";
-    static final String UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION = "Пожалуйста, загрузите ваше решение в виде документа:";
     static final String UPLOADSOLUTION_ERROR_OCCURED = "При загрузке решения произошла ошибка (попробуйте еще раз позже)";
     static final String UPLOADSOLUTION_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите загрузить такое решение, как ответ на \"%s\"? (да/нет)";
     static final String UPLOADSOLUTION_CONFIRMATION_SUCCESS = "Ваше решение успешно загружено\n/help";

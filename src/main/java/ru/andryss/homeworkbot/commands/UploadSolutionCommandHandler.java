@@ -1,19 +1,24 @@
 package ru.andryss.homeworkbot.commands;
 
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfWriter;
-import lombok.Data;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.utils.PdfMerger;
+import com.itextpdf.layout.element.Image;
+import com.itextpdf.layout.element.Paragraph;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.poi.xwpf.converter.pdf.PdfConverter;
+import org.apache.poi.xwpf.converter.pdf.PdfOptions;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Document;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
@@ -21,9 +26,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.services.SubmissionService;
 import ru.andryss.homeworkbot.services.UserService;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -31,8 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.itextpdf.text.pdf.BaseFont.EMBEDDED;
-import static com.itextpdf.text.pdf.BaseFont.IDENTITY_H;
+import static com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED;
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 
@@ -48,13 +50,17 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     private static final int WAITING_FOR_SUBMISSION = 1;
     private static final int WAITING_FOR_CONFIRMATION = 2;
 
+    private static final int USER_SUBMISSIONS_LIMIT = 10;
+    private static final int SIZE_5MB = 5 * 1024 * 1024;
+
     private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
+    private static final List<List<String>> STOP_WORD_BUTTON = List.of(List.of(STOP_WORD));
 
     private final Map<Long, Integer> userToState = new ConcurrentHashMap<>();
     private final Map<Long, List<String>> userToAvailableTopics = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedTopic = new ConcurrentHashMap<>();
+    private final Map<Long, List<PdfTranslator>> userToUploadedParts = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedFile = new ConcurrentHashMap<>();
-    private final Map<Long, UploadPhotoInfo> userToUploadPhotoInfo = new ConcurrentHashMap<>();
     private final Map<Long, String> userToUploadedFileExtension = new ConcurrentHashMap<>();
 
     private final UserService userService;
@@ -131,227 +137,145 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         userToUploadedTopic.put(userId, topic);
 
         sendMessage(update, sender, UPLOADSOLUTION_SUBMISSION_RULES);
-        sendMessage(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION);
+        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION, STOP_WORD_BUTTON);
         userToState.put(userId, WAITING_FOR_SUBMISSION);
     }
 
     private void onGetSubmission(Update update, AbsSender sender) throws TelegramApiException {
-        if (update.getMessage().hasPhoto() && update.getMessage().getMediaGroupId() != null) {
-            collectPhoto(update, sender);
+        Long userId = update.getMessage().getFrom().getId();
+
+        List<PdfTranslator> submissions = userToUploadedParts.computeIfAbsent(userId, l -> new ArrayList<>(USER_SUBMISSIONS_LIMIT));
+
+        if (update.getMessage().hasText() && update.getMessage().getText().equals(STOP_WORD)) {
+            if (submissions.size() == 0) {
+                sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_EMPTY_SUBMISSION, STOP_WORD_BUTTON);
+                return;
+            }
+            handleSubmissions(update, sender);
             return;
         }
+
+        if (update.getMessage().hasDocument()) {
+            Document document = update.getMessage().getDocument();
+            if (document.getFileSize() > SIZE_5MB) {
+                sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE);
+                return;
+            }
+            if (document.getMimeType().startsWith("image")) {
+                submissions.add(new PhotoPdfTranslator(document.getFileId(), sender));
+            } else if (document.getMimeType().equals("application/pdf")) {
+                submissions.add(new PdfPdfTranslator(document.getFileId(), sender));
+            } else if (document.getMimeType().equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+                submissions.add(new DocxPdfTranslator(document.getFileId(), sender));
+            } else {
+                if (submissions.size() > 0) {
+                    sendMessage(update, sender, UPLOADSOLUTION_INCORRECT_COMBINATION);
+                    return;
+                }
+                handleSimpleSubmission(update, sender);
+                return;
+            }
+        } else if (update.getMessage().hasPhoto()) {
+            List<PhotoSize> photoSizes = update.getMessage().getPhoto();
+            PhotoSize biggestPhotoSize = photoSizes.stream()
+                    .max(Comparator.comparingInt(PhotoSize::getFileSize))
+                    .orElseThrow();
+            submissions.add(new PhotoPdfTranslator(biggestPhotoSize.getFileId(), sender));
+        } else if (update.getMessage().hasText()) {
+            submissions.add(new TextPdfTranslator(update.getMessage().getText()));
+        }
+
+        if (submissions.size() < USER_SUBMISSIONS_LIMIT) {
+            return;
+        }
+
+        handleSubmissions(update, sender);
+    }
+
+    private void handleSubmissions(Update update, AbsSender sender) throws TelegramApiException {
         sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
 
         Long userId = update.getMessage().getFrom().getId();
-        File tmpDir = null;
-        String fileName;
-        Message message;
+        List<PdfTranslator> parts = userToUploadedParts.get(userId);
 
+        String userName = userService.getUserName(userId).orElseThrow();
+
+        String submissionFileId;
+        File tmpDir = null;
         try {
             tmpDir = Files.createTempDirectory("submission").toFile();
-            String tmpDirPrefix = tmpDir.getAbsolutePath() + '/';
+            File submission = new File(tmpDir.getAbsolutePath(), userName + ".pdf");
 
-            File submission;
-            if (update.getMessage().hasDocument()) {
-                submission = extractDocument(tmpDirPrefix, update, sender);
-            } else if (update.getMessage().hasPhoto()) {
-                submission = extractPhoto(tmpDirPrefix, update, sender);
-            } else if (update.getMessage().hasText()) {
-                submission = extractText(tmpDirPrefix, update);
-            } else {
-                submission = null;
+            PdfMerger merger = new PdfMerger(new PdfDocument(new PdfWriter(submission)));
+
+            for (PdfTranslator part : parts) {
+                File tmpFile = File.createTempFile("part", ".pdf", tmpDir);
+                part.translate(tmpFile);
+
+                PdfDocument document = new PdfDocument(new PdfReader(tmpFile));
+                merger.merge(document, 1, document.getNumberOfPages());
+                document.close();
             }
 
-            if (submission == null) {
-                sendMessage(update, sender, UPLOADSOLUTION_ASK_FOR_RESENDING_SUBMISSION);
-                userToState.put(userId, WAITING_FOR_SUBMISSION);
+            merger.close();
+
+            long size = submission.length();
+            if (size > SIZE_5MB) {
+                sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, STOP_WORD_BUTTON);
+                parts.clear();
                 return;
             }
 
-            fileName = submission.getName();
-            message = sendDocument(update, sender, submission);
+            submissionFileId = sendDocument(update, sender, submission).getDocument().getFileId();
         } catch (IOException e) {
-            log.error("onGetSubmission error occurred", e);
+            log.error("error occurred while handling user submission", e);
             sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
-            userToState.put(userId, WAITING_FOR_SUBMISSION);
+            parts.clear();
             return;
         } finally {
             FileUtils.deleteQuietly(tmpDir);
         }
 
-        Document document = message.getDocument();
-        String fileId = document.getFileId();
-        userToUploadedFile.put(userId, fileId);
-
-        String extension = fileName.substring(fileName.lastIndexOf('.'));
-        userToUploadedFileExtension.put(userId, extension);
+        userToUploadedFile.put(userId, submissionFileId);
+        userToUploadedFileExtension.put(userId, ".pdf");
 
         sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
         userToState.put(userId, WAITING_FOR_CONFIRMATION);
     }
 
-    private void collectPhoto(Update update, AbsSender sender) throws TelegramApiException {
-        Long id = update.getMessage().getFrom().getId();
+    private void handleSimpleSubmission(Update update, AbsSender sender) throws TelegramApiException {
+        sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
 
-        if (!userToUploadPhotoInfo.containsKey(id)) {
-            sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
-        }
-
-        UploadPhotoInfo uploadInfo = userToUploadPhotoInfo.computeIfAbsent(id, l -> new UploadPhotoInfo());
-        if (uploadInfo.isStarted()) {
-            return;
-        }
-
-        Thread callback = uploadInfo.getCallback();
-        if (callback != null) {
-            callback.interrupt();
-            try {
-                callback.join();
-            } catch (InterruptedException e) {
-                return;
-            }
-        }
-
-        uploadInfo.getPhotos().add(update.getMessage().getPhoto().stream()
-                .max(Comparator.comparingInt(PhotoSize::getFileSize))
-                .orElseThrow()
-        );
-
-        uploadInfo.setCallback(new Thread(() -> {
-            try {
-                Thread.sleep(1_000);
-                handlePhotoGroup(update, sender, id);
-            } catch (InterruptedException e) {
-                // ignore
-            }
-        }));
-
-        uploadInfo.getCallback().start();
-    }
-
-    private void handlePhotoGroup(Update update, AbsSender sender, Long userId) {
-        UploadPhotoInfo uploadInfo = userToUploadPhotoInfo.get(userId);
-        List<PhotoSize> photoSizes = uploadInfo.getPhotos();
-
+        Long userId = update.getMessage().getFrom().getId();
         String userName = userService.getUserName(userId).orElseThrow();
 
-        uploadInfo.setStarted(true);
+        Document document = update.getMessage().getDocument();
+        String uploadedFilename = document.getFileName();
+        String extension = uploadedFilename.substring(uploadedFilename.lastIndexOf('.'));
+
+        String submissionFileId;
         File tmpDir = null;
         try {
             tmpDir = Files.createTempDirectory("submission").toFile();
 
-            String fileName = tmpDir.getAbsolutePath() + '/' + userName + ".pdf";
+            File submission = new File(tmpDir.getAbsolutePath(), userName + extension);
 
-            try (FileOutputStream fos = new FileOutputStream(fileName)) {
-                com.itextpdf.text.Document document = new com.itextpdf.text.Document(new Rectangle(0, 0), 0, 0, 0, 0);
-                PdfWriter writer = PdfWriter.getInstance(document, fos);
+            downloadFile(sender, document.getFileId(), submission);
 
-                writer.open();
-                document.open();
-
-                for (PhotoSize photoSize : photoSizes) {
-                    File image = new File(tmpDir.getAbsolutePath() + photoSize.getFileUniqueId());
-                    if (!image.createNewFile()) {
-                        throw new IOException("can't create file " + image.getAbsolutePath());
-                    }
-
-                    downloadFile(sender, photoSize.getFileId(), image);
-
-                    document.setPageSize(new Rectangle(photoSize.getWidth(), photoSize.getHeight()));
-                    document.newPage();
-                    document.add(Image.getInstance(image.getAbsolutePath()));
-                }
-
-                document.close();
-                writer.close();
-            }
-
-            Message message = sendDocument(update, sender, new File(fileName));
-
-            userToUploadPhotoInfo.remove(userId);
-
-            userToUploadedFile.put(userId, message.getDocument().getFileId());
-
-            userToUploadedFileExtension.put(userId, ".pdf");
-
-            sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
-            userToState.put(userId, WAITING_FOR_CONFIRMATION);
-        } catch (Exception e) {
-            log.error("exception occurred during photo group handling", e);
+            submissionFileId = sendDocument(update, sender, submission).getDocument().getFileId();
+        } catch (IOException e) {
+            log.error("error occurred while handling user submission", e);
+            sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
+            return;
         } finally {
             FileUtils.deleteQuietly(tmpDir);
         }
-    }
 
-    private File extractDocument(String tmpDirPrefix, Update update, AbsSender sender) throws TelegramApiException, IOException {
-        Long id = update.getMessage().getFrom().getId();
-        String userName = userService.getUserName(id).orElseThrow();
+        userToUploadedFile.put(userId, submissionFileId);
+        userToUploadedFileExtension.put(userId, extension);
 
-        Document document = update.getMessage().getDocument();
-        Long fileSize = document.getFileSize();
-        if (fileSize > 5 * 1024 * 1024) {
-            sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE);
-            return null;
-        }
-
-        String documentFileName = document.getFileName();
-        String extension = documentFileName.substring(documentFileName.lastIndexOf('.'));
-
-        String fileName = tmpDirPrefix + userName + extension;
-        File submission = new File(fileName);
-        if (!submission.createNewFile()) {
-            throw new IOException("can't create file " + submission.getAbsolutePath());
-        }
-
-        String fileId = document.getFileId();
-        downloadFile(sender, fileId, submission);
-
-        return submission;
-    }
-
-    private File extractPhoto(String tmpDirPrefix, Update update, AbsSender sender) throws TelegramApiException, IOException {
-        Long id = update.getMessage().getFrom().getId();
-
-        List<PhotoSize> photoSizes = update.getMessage().getPhoto();
-        PhotoSize biggestPhotoSize = photoSizes.stream()
-                .max(Comparator.comparingInt(PhotoSize::getFileSize))
-                .orElseThrow();
-
-        String userName = userService.getUserName(id).orElseThrow();
-        String fileName = tmpDirPrefix + userName + ".pdf";
-        File submission = new File(fileName);
-        if (!submission.createNewFile()) {
-            throw new IOException("can't create file " + submission.getAbsolutePath());
-        }
-
-        downloadFile(sender, biggestPhotoSize.getFileId(), submission);
-
-        return submission;
-    }
-
-    private File extractText(String tmpDirPrefix, Update update) throws IOException {
-        Long id = update.getMessage().getFrom().getId();
-        String userName = userService.getUserName(id).orElseThrow();
-        String fileName = tmpDirPrefix + userName + ".pdf";
-
-        try (FileOutputStream fos = new FileOutputStream(fileName)) {
-            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-            PdfWriter writer = PdfWriter.getInstance(document, fos);
-
-            writer.open();
-            document.open();
-
-            String text = update.getMessage().getText();
-            Font font = new Font(BaseFont.createFont("/fonts/ArialRegular.ttf", IDENTITY_H, EMBEDDED));
-            document.add(new Paragraph(text, font));
-
-            document.close();
-            writer.close();
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-
-        return new File(fileName);
+        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
+        userToState.put(userId, WAITING_FOR_CONFIRMATION);
     }
 
     private void onGetConfirmation(Update update, AbsSender sender) throws TelegramApiException {
@@ -370,6 +294,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             userToState.remove(userId);
             userToAvailableTopics.remove(userId);
             userToUploadedTopic.remove(userId);
+            userToUploadedParts.remove(userId);
             userToUploadedFile.remove(userId);
             userToUploadedFileExtension.remove(userId);
             exitForUser(userId);
@@ -381,15 +306,89 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         userToState.remove(userId);
         userToAvailableTopics.remove(userId);
         userToUploadedTopic.remove(userId);
+        userToUploadedParts.remove(userId);
         userToUploadedFile.remove(userId);
         userToUploadedFileExtension.remove(userId);
         exitForUser(userId);
     }
 
-    @Data
-    private static class UploadPhotoInfo {
-        private List<PhotoSize> photos = new ArrayList<>();
-        private volatile boolean started = false;
-        private Thread callback;
+    /**
+     * Interface to work with uploaded user solution
+     */
+    private interface PdfTranslator {
+        /**
+         * Translates solution into pdf file
+         * @param destination pdf file to write
+         */
+        void translate(File destination) throws IOException, TelegramApiException;
+    }
+
+    private record TextPdfTranslator(String text) implements PdfTranslator {
+        @Override
+        public void translate(File destination) throws IOException {
+            try (FileOutputStream fos = new FileOutputStream(destination)) {
+                PdfDocument pdfDocument = new PdfDocument(new PdfWriter(fos));
+                com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdfDocument);
+
+                Paragraph p = new Paragraph();
+                p.setFont(PdfFontFactory.createFont("fonts/ArialRegular.ttf", PREFER_EMBEDDED));
+                p.add(text);
+
+                document.add(p);
+
+                document.close();
+            }
+        }
+    }
+
+    private record PhotoPdfTranslator(String photoId, AbsSender sender) implements PdfTranslator {
+        @Override
+        public void translate(File destination) throws TelegramApiException, IOException {
+            File photo = null;
+            try {
+                photo = File.createTempFile("photo", "");
+                downloadFile(sender, photoId, photo);
+
+                ImageData imageData = ImageDataFactory.create(photo.getAbsolutePath());
+
+                PdfDocument pdfDocument = new PdfDocument(new PdfWriter(destination));
+                pdfDocument.setDefaultPageSize(new PageSize(imageData.getWidth(), imageData.getHeight()));
+
+                com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdfDocument);
+                document.setMargins(0, 0, 0, 0);
+
+                Image image = new Image(imageData);
+                document.add(image);
+
+                document.close();
+            } finally {
+                FileUtils.deleteQuietly(photo);
+            }
+        }
+    }
+
+    private record PdfPdfTranslator(String fileId, AbsSender sender) implements PdfTranslator {
+        @Override
+        public void translate(File destination) throws TelegramApiException {
+            downloadFile(sender, fileId, destination);
+        }
+    }
+
+    private record DocxPdfTranslator(String fileId, AbsSender sender) implements PdfTranslator {
+        @Override
+        public void translate(File destination) throws TelegramApiException, IOException {
+            File docx = null;
+            try {
+                docx = File.createTempFile("docx", ".docx");
+                downloadFile(sender, fileId, docx);
+
+                XWPFDocument document = new XWPFDocument(new FileInputStream(docx));
+                PdfOptions options = PdfOptions.create();
+                OutputStream out = new FileOutputStream(destination);
+                PdfConverter.getInstance().convert(document, out, options);
+            } finally {
+                FileUtils.deleteQuietly(docx);
+            }
+        }
     }
 }
