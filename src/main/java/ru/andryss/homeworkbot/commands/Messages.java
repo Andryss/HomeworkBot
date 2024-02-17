@@ -18,6 +18,7 @@ public class Messages {
     // Common messages block
     static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";
     static final String NOT_LEADER = "Вы не являетесь старостой";
+    static final String TOPIC_NOT_FOUND = "Пожалуйста, введите название существующего домашнего задания:";
     static final String ASK_FOR_RESENDING_TOPIC = "Пожалуйста, введите название домашнего задания текстом:";
     static final String YES_ANSWER = "да";
     static final String NO_ANSWER = "нет";
@@ -28,6 +29,7 @@ public class Messages {
     // Specific messages block (starts with "<COMMAND_NAME>_")
     static final String START_ASK_FOR_FIRSTNAME_LASTNAME = "Пожалуйста, введите ФИО, так будут подписаны ваши работы\n(например, \"Иванов Иван Иванович\"):";
     static final String START_ILLEGAL_CHARACTERS = "ФИО содержит недопустимые символы\n(допустимые символы: буквы, пробел, \"-\")";
+    static final String START_TOO_MANY_CHARACTERS = "ФИО должно состоять из максимум 70 символов!";
     static final String START_ALREADY_REGISTERED = "Кто-то уже зарегистрировался под таким ФИО";
     static final String START_ANSWER_FOR_FIRSTNAME_LASTNAME = "Теперь вы \"%s\"\n/help";
 
@@ -35,6 +37,7 @@ public class Messages {
 
     static final String CREATETOPIC_ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания (оно будет отображаться для сдачи):";
     static final String CREATETOPIC_TOPIC_ILLEGAL_CHARACTERS = "Название содержит недопустимые символы\n(допустимые символы: буквы, цифры, пробел, \"_\", \"-\")";
+    static final String CREATETOPIC_TOPIC_TOO_MANY_CHARACTERS = "Название должно состоять из максимум 200 символов!";
     static final String CREATETOPIC_TOPIC_ALREADY_EXIST = "Такое домашнее задание уже существует, введите другое:";
     static final String CREATETOPIC_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите добавить домашнее задание \"%s\"? (да/нет)";
     static final String CREATETOPIC_CONFIRMATION_SUCCESS = "Новое домашнее задание добавлено в список\n/help";
@@ -51,7 +54,7 @@ public class Messages {
     static final String UPLOADSOLUTION_EMPTY_SUBMISSION = "Пожалуйста, сначала загрузите ваше решение:";
     static final String UPLOADSOLUTION_INCORRECT_COMBINATION = "Нельзя добавить файл этого формата к уже отправленным";
     static final String UPLOADSOLUTION_LOADING_SUBMISSION = "Обрабатываю ваше решение...\n(это может занять некоторое время)";
-    static final String UPLOADSOLUTION_TOO_LARGE_MERGED_FILE = "Размер итогового файла превышает 5 мб!\nПожалуйста сожмите файлы и попробуйте снова";
+    static final String UPLOADSOLUTION_TOO_LARGE_MERGED_FILE = "Размер итогового файла превышает 5 мб!\nПожалуйста, сожмите файлы и попробуйте снова:";
     static final String UPLOADSOLUTION_TOO_LARGE_FILE = "Размер файла превышает 5 мб!";
     static final String UPLOADSOLUTION_ERROR_OCCURED = "При загрузке решения произошла ошибка (попробуйте еще раз позже)";
     static final String UPLOADSOLUTION_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите загрузить такое решение, как ответ на \"%s\"? (да/нет)";

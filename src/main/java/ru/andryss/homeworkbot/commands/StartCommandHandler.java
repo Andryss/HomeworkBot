@@ -40,6 +40,11 @@ public class StartCommandHandler extends AbstractCommandHandler {
             return;
         }
 
+        if (userName.length() > 70) {
+            sendMessage(update, sender, START_TOO_MANY_CHARACTERS);
+            return;
+        }
+
         if (userService.userNameExists(userName)) {
             sendMessage(update, sender, START_ALREADY_REGISTERED);
             exitForUser(userId);

@@ -93,6 +93,11 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
             return;
         }
 
+        if (topic.length() > 200) {
+            sendMessage(update, sender, CREATETOPIC_TOPIC_TOO_MANY_CHARACTERS);
+            return;
+        }
+
         if (topicService.topicExists(topic)) {
             sendMessage(update, sender, CREATETOPIC_TOPIC_ALREADY_EXIST);
             return;

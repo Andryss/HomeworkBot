@@ -103,34 +103,34 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     private void onGetCommandAndAvailableTopics(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
         List<String> availableTopics = userToAvailableTopics.get(userId);
+        List<List<String>> topicsKeyboard = new ArrayList<>(availableTopics.size());
 
         StringBuilder builder = new StringBuilder();
         for (String topic : availableTopics) {
             builder.append('\n').append("• ").append(topic);
+            topicsKeyboard.add(List.of(topic));
         }
         sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, builder));
 
-        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, List.of(availableTopics));
+        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, topicsKeyboard);
         userToState.put(userId, WAITING_FOR_TOPIC_NAME);
     }
 
     private void onGetTopicName(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
+        List<String> availableTopics = userToAvailableTopics.get(userId);
 
-        if (!update.getMessage().hasText() || !userToAvailableTopics.get(userId).contains(update.getMessage().getText())) {
-            List<String> topics = userToAvailableTopics.get(userId);
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, List.of(topics));
-            userToState.put(userId, WAITING_FOR_TOPIC_NAME);
+        if (!update.getMessage().hasText()) {
+            List<List<String>> topics = availableTopics.stream().map(List::of).toList();
+            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, topics);
             return;
         }
 
         String topic = update.getMessage().getText();
-        List<String> availableTopics = userToAvailableTopics.get(userId);
 
         if (!availableTopics.contains(topic)) {
             List<List<String>> availableTopicsKeyboard = availableTopics.stream().map(List::of).toList();
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, availableTopicsKeyboard);
-            userToState.put(userId, WAITING_FOR_TOPIC_NAME);
+            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, availableTopicsKeyboard);
             return;
         }
 
@@ -169,7 +169,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
                 submissions.add(new DocxPdfTranslator(document.getFileId(), sender));
             } else {
                 if (submissions.size() > 0) {
-                    sendMessage(update, sender, UPLOADSOLUTION_INCORRECT_COMBINATION);
+                    sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_INCORRECT_COMBINATION, STOP_WORD_BUTTON);
                     return;
                 }
                 handleSimpleSubmission(update, sender);
