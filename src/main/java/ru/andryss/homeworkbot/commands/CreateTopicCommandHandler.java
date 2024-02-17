@@ -1,5 +1,6 @@
 package ru.andryss.homeworkbot.commands;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -11,8 +12,6 @@ import ru.andryss.homeworkbot.services.TopicService;
 import ru.andryss.homeworkbot.services.UserService;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
@@ -21,7 +20,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWi
 
 @Component
 @RequiredArgsConstructor
-public class CreateTopicCommandHandler extends AbstractCommandHandler {
+public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCommandHandler.UserState> {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/createtopic", "добавить домашнее задание (для старосты)");
@@ -33,13 +32,19 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
 
     private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
 
-    private final Map<Long, Integer> userToState = new ConcurrentHashMap<>();
-    private final Map<Long, String> userToCreatedTopic = new ConcurrentHashMap<>();
-
     private final UserService userService;
     private final LeaderService leaderService;
     private final TopicService topicService;
 
+
+    @Data
+    static class UserState {
+        private int state;
+        private String createdTopic;
+        private UserState(int state) {
+            this.state = state;
+        }
+    }
 
     @Override
     protected void onCommandReceived(Update update, AbsSender sender) throws TelegramApiException {
@@ -58,24 +63,18 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
             return;
         }
 
-        onGetCommand(update, sender);
-        userToState.put(userId, WAITING_FOR_TOPIC_NAME);
+        sendMessage(update, sender, CREATETOPIC_ASK_FOR_TOPIC_NAME);
+        putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME));
     }
 
     @Override
     public void onUpdateReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
-        Integer userState = userToState.get(userId);
-        switch (userState) {
+        UserState userState = getUserState(userId);
+        switch (userState.getState()) {
             case WAITING_FOR_TOPIC_NAME -> onGetTopicName(update, sender);
             case WAITING_FOR_CONFIRMATION -> onGetConfirmation(update, sender);
         }
-    }
-
-    private void onGetCommand(Update update, AbsSender sender) throws TelegramApiException {
-        sendMessage(update, sender, CREATETOPIC_ASK_FOR_TOPIC_NAME);
-        Long userId = update.getMessage().getFrom().getId();
-        userToState.put(userId, WAITING_FOR_TOPIC_NAME);
     }
 
     private void onGetTopicName(Update update, AbsSender sender) throws TelegramApiException {
@@ -103,10 +102,11 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
             return;
         }
 
-        userToCreatedTopic.put(userId, topic);
+        UserState userState = getUserState(userId);
+        userState.setCreatedTopic(topic);
 
         sendMessageWithKeyboard(update, sender, String.format(CREATETOPIC_ASK_FOR_CONFIRMATION, topic), YES_NO_BUTTONS);
-        userToState.put(userId, WAITING_FOR_CONFIRMATION);
+        userState.setState(WAITING_FOR_CONFIRMATION);
     }
 
     private void onGetConfirmation(Update update, AbsSender sender) throws TelegramApiException {
@@ -115,23 +115,20 @@ public class CreateTopicCommandHandler extends AbstractCommandHandler {
 
         if (!update.getMessage().hasText() || !confirmation.equals(YES_ANSWER) && !confirmation.equals(NO_ANSWER)) {
             sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_CONFIRMATION, YES_NO_BUTTONS);
-            userToState.put(userId, WAITING_FOR_CONFIRMATION);
             return;
         }
 
 
         if (confirmation.equals(NO_ANSWER)) {
             sendMessage(update, sender, CREATETOPIC_CONFIRMATION_FAILURE);
-            userToState.remove(userId);
-            userToCreatedTopic.remove(userId);
+            clearUserState(userId);
             exitForUser(userId);
             return;
         }
 
-        topicService.createTopic(userId, userToCreatedTopic.get(userId));
+        topicService.createTopic(userId, getUserState(userId).getCreatedTopic());
         sendMessage(update, sender, CREATETOPIC_CONFIRMATION_SUCCESS);
-        userToState.remove(userId);
-        userToCreatedTopic.remove(userId);
+        clearUserState(userId);
         exitForUser(userId);
     }
 }

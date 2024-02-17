@@ -10,6 +10,7 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.utils.PdfMerger;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +32,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED;
 import static ru.andryss.homeworkbot.commands.Messages.*;
@@ -41,7 +40,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class UploadSolutionCommandHandler extends AbstractCommandHandler {
+public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolutionCommandHandler.UserState> {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/uploadsolution", "загрузить решение домашнего задания");
@@ -56,16 +55,23 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
     private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
     private static final List<List<String>> STOP_WORD_BUTTON = List.of(List.of(STOP_WORD));
 
-    private final Map<Long, Integer> userToState = new ConcurrentHashMap<>();
-    private final Map<Long, List<String>> userToAvailableTopics = new ConcurrentHashMap<>();
-    private final Map<Long, String> userToUploadedTopic = new ConcurrentHashMap<>();
-    private final Map<Long, List<PdfTranslator>> userToUploadedParts = new ConcurrentHashMap<>();
-    private final Map<Long, String> userToUploadedFile = new ConcurrentHashMap<>();
-    private final Map<Long, String> userToUploadedFileExtension = new ConcurrentHashMap<>();
-
     private final UserService userService;
     private final SubmissionService submissionService;
 
+
+    @Data
+    static class UserState {
+        private int state;
+        private List<String> availableTopics;
+        private String uploadedTopic;
+        private List<PdfTranslator> uploadedParts;
+        private String uploadedFile;
+        private String uploadedFileExtension;
+        UserState(int state, List<String> availableTopics) {
+            this.state = state;
+            this.availableTopics = availableTopics;
+        }
+    }
 
     @Override
     protected void onCommandReceived(Update update, AbsSender sender) throws TelegramApiException {
@@ -83,68 +89,64 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             exitForUser(userId);
             return;
         }
-        userToAvailableTopics.put(userId, availableTopics);
 
-        onGetCommandAndAvailableTopics(update, sender);
-        userToState.put(userId, WAITING_FOR_TOPIC_NAME);
+        StringBuilder builder = new StringBuilder();
+        List<List<String>> topicsKeyboard = new ArrayList<>(availableTopics.size());
+        for (String topic : availableTopics) {
+            builder.append('\n').append("• ").append(topic);
+            topicsKeyboard.add(List.of(topic));
+        }
+
+        sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, builder));
+        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, topicsKeyboard);
+
+        putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME, availableTopics));
     }
 
     @Override
     public void onUpdateReceived(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
-        Integer userState = userToState.get(userId);
-        switch (userState) {
+        UserState userState = getUserState(userId);
+        switch (userState.getState()) {
             case WAITING_FOR_TOPIC_NAME -> onGetTopicName(update, sender);
             case WAITING_FOR_SUBMISSION -> onGetSubmission(update, sender);
             case WAITING_FOR_CONFIRMATION -> onGetConfirmation(update, sender);
         }
     }
 
-    private void onGetCommandAndAvailableTopics(Update update, AbsSender sender) throws TelegramApiException {
-        Long userId = update.getMessage().getFrom().getId();
-        List<String> availableTopics = userToAvailableTopics.get(userId);
-        List<List<String>> topicsKeyboard = new ArrayList<>(availableTopics.size());
-
-        StringBuilder builder = new StringBuilder();
-        for (String topic : availableTopics) {
-            builder.append('\n').append("• ").append(topic);
-            topicsKeyboard.add(List.of(topic));
-        }
-        sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, builder));
-
-        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, topicsKeyboard);
-        userToState.put(userId, WAITING_FOR_TOPIC_NAME);
-    }
-
     private void onGetTopicName(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
-        List<String> availableTopics = userToAvailableTopics.get(userId);
+        UserState userState = getUserState(userId);
+        List<String> availableTopics = userState.getAvailableTopics();
 
         if (!update.getMessage().hasText()) {
-            List<List<String>> topics = availableTopics.stream().map(List::of).toList();
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, topics);
+            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, availableTopics.stream().map(List::of).toList());
             return;
         }
 
         String topic = update.getMessage().getText();
 
         if (!availableTopics.contains(topic)) {
-            List<List<String>> availableTopicsKeyboard = availableTopics.stream().map(List::of).toList();
-            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, availableTopicsKeyboard);
+            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, availableTopics.stream().map(List::of).toList());
             return;
         }
 
-        userToUploadedTopic.put(userId, topic);
+        userState.setUploadedTopic(topic);
 
         sendMessage(update, sender, UPLOADSOLUTION_SUBMISSION_RULES);
         sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION, STOP_WORD_BUTTON);
-        userToState.put(userId, WAITING_FOR_SUBMISSION);
+
+        userState.setState(WAITING_FOR_SUBMISSION);
     }
 
     private void onGetSubmission(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
+        UserState userState = getUserState(userId);
 
-        List<PdfTranslator> submissions = userToUploadedParts.computeIfAbsent(userId, l -> new ArrayList<>(USER_SUBMISSIONS_LIMIT));
+        if (userState.getUploadedParts() == null) {
+            userState.setUploadedParts(new ArrayList<>(USER_SUBMISSIONS_LIMIT));
+        }
+        List<PdfTranslator> submissions = userState.getUploadedParts();
 
         if (update.getMessage().hasText() && update.getMessage().getText().equals(STOP_WORD)) {
             if (submissions.size() == 0) {
@@ -196,7 +198,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
 
         Long userId = update.getMessage().getFrom().getId();
-        List<PdfTranslator> parts = userToUploadedParts.get(userId);
+        UserState userState = getUserState(userId);
 
         String userName = userService.getUserName(userId).orElseThrow();
 
@@ -208,7 +210,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
             PdfMerger merger = new PdfMerger(new PdfDocument(new PdfWriter(submission)));
 
-            for (PdfTranslator part : parts) {
+            for (PdfTranslator part : userState.getUploadedParts()) {
                 File tmpFile = File.createTempFile("part", ".pdf", tmpDir);
                 part.translate(tmpFile);
 
@@ -222,7 +224,7 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             long size = submission.length();
             if (size > SIZE_5MB) {
                 sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, STOP_WORD_BUTTON);
-                parts.clear();
+                userState.getUploadedParts().clear();
                 return;
             }
 
@@ -230,17 +232,18 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
         } catch (IOException e) {
             log.error("error occurred while handling user submission", e);
             sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
-            parts.clear();
+            userState.getUploadedParts().clear();
             return;
         } finally {
             FileUtils.deleteQuietly(tmpDir);
         }
 
-        userToUploadedFile.put(userId, submissionFileId);
-        userToUploadedFileExtension.put(userId, ".pdf");
+        userState.setUploadedFile(submissionFileId);
+        userState.setUploadedFileExtension(".pdf");
 
-        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
-        userToState.put(userId, WAITING_FOR_CONFIRMATION);
+        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopic()), YES_NO_BUTTONS);
+
+        userState.setState(WAITING_FOR_CONFIRMATION);
     }
 
     private void handleSimpleSubmission(Update update, AbsSender sender) throws TelegramApiException {
@@ -271,11 +274,13 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
             FileUtils.deleteQuietly(tmpDir);
         }
 
-        userToUploadedFile.put(userId, submissionFileId);
-        userToUploadedFileExtension.put(userId, extension);
+        UserState userState = getUserState(userId);
+        userState.setUploadedFile(submissionFileId);
+        userState.setUploadedFileExtension(extension);
 
-        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userToUploadedTopic.get(userId)), YES_NO_BUTTONS);
-        userToState.put(userId, WAITING_FOR_CONFIRMATION);
+        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopic()), YES_NO_BUTTONS);
+
+        userState.setState(WAITING_FOR_CONFIRMATION);
     }
 
     private void onGetConfirmation(Update update, AbsSender sender) throws TelegramApiException {
@@ -284,31 +289,21 @@ public class UploadSolutionCommandHandler extends AbstractCommandHandler {
 
         if (!update.getMessage().hasText() || !confirmation.equals(YES_ANSWER) && !confirmation.equals(NO_ANSWER)) {
             sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_CONFIRMATION, YES_NO_BUTTONS);
-            userToState.put(userId, WAITING_FOR_CONFIRMATION);
             return;
         }
 
 
         if (confirmation.equals(NO_ANSWER)) {
             sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_FAILURE);
-            userToState.remove(userId);
-            userToAvailableTopics.remove(userId);
-            userToUploadedTopic.remove(userId);
-            userToUploadedParts.remove(userId);
-            userToUploadedFile.remove(userId);
-            userToUploadedFileExtension.remove(userId);
+            clearUserState(userId);
             exitForUser(userId);
             return;
         }
 
-        submissionService.uploadSubmission(userId, userToUploadedTopic.get(userId), userToUploadedFile.get(userId), userToUploadedFileExtension.get(userId));
+        UserState userState = getUserState(userId);
+        submissionService.uploadSubmission(userId, userState.getUploadedTopic(), userState.getUploadedFile(), userState.getUploadedFileExtension());
         sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_SUCCESS);
-        userToState.remove(userId);
-        userToAvailableTopics.remove(userId);
-        userToUploadedTopic.remove(userId);
-        userToUploadedParts.remove(userId);
-        userToUploadedFile.remove(userId);
-        userToUploadedFileExtension.remove(userId);
+        clearUserState(userId);
         exitForUser(userId);
     }
 
