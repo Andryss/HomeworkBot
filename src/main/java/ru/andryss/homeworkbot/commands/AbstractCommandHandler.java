@@ -1,5 +1,6 @@
 package ru.andryss.homeworkbot.commands;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,6 +29,14 @@ public abstract class AbstractCommandHandler implements CommandHandler {
         Runnable exitHandler = userIdToExitHandler.remove(userId);
         if (exitHandler == null) return;
         exitHandler.run();
+    }
+
+    protected static String buildNumberedList(List<String> rows) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < rows.size(); i++) {
+            builder.append(i + 1).append(") ").append(rows.get(i)).append('\n');
+        }
+        return builder.toString();
     }
 
     /**

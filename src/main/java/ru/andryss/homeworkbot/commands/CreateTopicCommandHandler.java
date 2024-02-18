@@ -19,6 +19,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
+@SuppressWarnings("DuplicatedCode")
 @Component
 @RequiredArgsConstructor
 public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCommandHandler.UserState> {

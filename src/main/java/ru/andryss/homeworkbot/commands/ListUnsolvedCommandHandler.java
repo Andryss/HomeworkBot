@@ -40,15 +40,7 @@ public class ListUnsolvedCommandHandler extends SingleActionCommandHandler {
         if (unsolvedTopics.isEmpty()) {
             sendMessage(update, sender, LISTUNSOLVED_NO_UNSOLVED_TOPICS);
         } else {
-            sendMessage(update, sender, String.format(LISTUNSOLVED_UNSOVLED_TOPICS_LIST, createTopicsString(unsolvedTopics)));
+            sendMessage(update, sender, String.format(LISTUNSOLVED_UNSOVLED_TOPICS_LIST, buildNumberedList(unsolvedTopics)));
         }
-    }
-
-    private String createTopicsString(List<String> unsolvedTopics) {
-        StringBuilder builder = new StringBuilder();
-        for (String topic : unsolvedTopics) {
-            builder.append('\n').append("• ").append(topic);
-        }
-        return builder.toString();
     }
 }

@@ -1,8 +1,10 @@
 package ru.andryss.homeworkbot.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.andryss.homeworkbot.entities.SubmissionEntity;
 
 import java.util.List;
@@ -37,4 +39,14 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
         where t.name = :topic
         """, nativeQuery = true)
     List<SubmissionEntity> findAllByTopic(String topic);
+
+    /**
+     * Removes all submission on given topic
+     *
+     * @param topic topic name to search
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "delete from submissions where topic_name = :topic", nativeQuery = true)
+    void deleteAllByTopic(String topic);
 }

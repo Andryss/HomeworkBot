@@ -18,6 +18,8 @@ public class Messages {
     // Common messages block
     static final String REGISTER_FIRST = "Для начала зарегистрируйтесь\n/start";
     static final String NOT_LEADER = "Вы не являетесь старостой";
+    static final String NO_TOPICS = "Нет ни одного домашнего задания";
+    static final String TOPICS_LIST = "Список домашних заданий:\n%s";
     static final String TOPIC_NOT_FOUND = "Пожалуйста, введите название существующего домашнего задания:";
     static final String ASK_FOR_RESENDING_TOPIC = "Пожалуйста, введите название домашнего задания текстом:";
     static final String YES_ANSWER = "да";
@@ -43,9 +45,6 @@ public class Messages {
     static final String CREATETOPIC_CONFIRMATION_SUCCESS = "Новое домашнее задание добавлено в список\n/help";
     static final String CREATETOPIC_CONFIRMATION_FAILURE = "Не удалось добавить новое домашнее задание\n/help";
 
-    static final String LISTTOPICS_NO_TOPICS = "Нет домашних заданий";
-    static final String LISTTOPICS_TOPICS_LIST = "Список домашних заданий: %s";
-
     static final String UPLOADSOLUTION_NO_AVAILABLE_TOPICS = "Нет доступных домашних заданий для сдачи";
     static final String UPLOADSOLUTION_AVAILABLE_TOPICS_LIST = "Список доступных домашних заданий для сдачи: %s";
     static final String UPLOADSOLUTION_ASK_FOR_TOPIC_NAME = "Пожалуйста, введите название домашнего задания, которое хотите сдать:";
@@ -54,14 +53,14 @@ public class Messages {
     static final String UPLOADSOLUTION_EMPTY_SUBMISSION = "Пожалуйста, сначала загрузите ваше решение:";
     static final String UPLOADSOLUTION_INCORRECT_COMBINATION = "Нельзя добавить файл этого формата к уже отправленным";
     static final String UPLOADSOLUTION_LOADING_SUBMISSION = "Обрабатываю ваше решение...\n(это может занять некоторое время)";
-    static final String UPLOADSOLUTION_TOO_LARGE_MERGED_FILE = "Размер итогового файла превышает 5 мб!\nПожалуйста, сожмите файлы и попробуйте снова:";
-    static final String UPLOADSOLUTION_TOO_LARGE_FILE = "Размер файла превышает 5 мб!";
+    static final String UPLOADSOLUTION_TOO_LARGE_MERGED_FILE = "Размер итогового файла превышает %s мб!\nПожалуйста, сожмите файлы и попробуйте снова:";
+    static final String UPLOADSOLUTION_TOO_LARGE_FILE = "Размер файла превышает %s мб!";
     static final String UPLOADSOLUTION_ERROR_OCCURED = "При загрузке решения произошла ошибка (попробуйте еще раз позже)";
     static final String UPLOADSOLUTION_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите загрузить такое решение, как ответ на \"%s\"? (да/нет)";
     static final String UPLOADSOLUTION_CONFIRMATION_SUCCESS = "Ваше решение успешно загружено\n/help";
     static final String UPLOADSOLUTION_CONFIRMATION_FAILURE = "Не удалось загрузить решение\n/help";
 
-    static final String LISTUNSOLVED_UNSOVLED_TOPICS_LIST = "Список домашних заданий, ожидающих вашего решения: %s";
+    static final String LISTUNSOLVED_UNSOVLED_TOPICS_LIST = "Список домашних заданий, ожидающих вашего решения:\n%s";
     static final String LISTUNSOLVED_NO_UNSOLVED_TOPICS = "Вы решили все возможные домашние задания (партия довольна)\n/help";
 
     static final String DUMPSOLUTIONS_NO_SUBMISSIONS = "Нет загруженных решений для выгрузки";
@@ -69,11 +68,14 @@ public class Messages {
     static final String DUMPSOLUTIONS_FINISH_DUMP = "Выгрузка решений успешно завершена";
     static final String DUMPSOLUTIONS_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
 
-    static final String DUMPTOPIC_NO_TOPICS = "Нет домашних заданий для выгрузки";
-    static final String DUMPTOPIC_TOPICS_LIST = "Список домашних заданий для выгрузки: %s";
     static final String DUMPTOPIC_ASK_FOR_TOPIC_NAME = "Выберите домашнее задание для выгрузки:";
     static final String DUMPTOPIC_NO_SUBMISSIONS = "Нет загруженных решений для выгрузки";
     static final String DUMPTOPIC_START_DUMP = "Начинаю выгрузку решений...\n(это может занять некоторое время)";
     static final String DUMPTOPIC_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
+
+    static final String REMOVETOPIC_ASK_FOR_TOPIC_NAME = "Выберите домашнее задание для удаления:";
+    static final String REMOVETOPIC_ASK_FOR_CONFIRMATION = "Вы уверены, что хотите удалить домашнее задание \"%s\"?\n(все отправленные решения будут безвозвратно удалены)";
+    static final String REMOVETOPIC_CONFIRMATION_SUCCESS = "Домашнее задание вместе с загруженными решениями успешно удалено\n/help";
+    static final String REMOVETOPIC_CONFIRMATION_FAILURE = "Не удалось удалить домашнее задание\n/help";
 
 }

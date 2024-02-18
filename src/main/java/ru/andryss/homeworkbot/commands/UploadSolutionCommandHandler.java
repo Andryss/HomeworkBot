@@ -40,6 +40,7 @@ import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneColumnKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
+@SuppressWarnings("DuplicatedCode")
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -56,9 +57,9 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
     private static final List<List<String>> STOP_WORD_BUTTON = buildOneRowKeyboard(STOP_WORD);
 
     @Value("${user.submission.parts.limit}")
-    private static int partsLimit;
-    @Value("${user.submission.size.limit}")
-    private static int sizeLimit;
+    private int partsLimit;
+    @Value("${user.submission.size.limit.mb}")
+    private long sizeLimitMb;
 
     private final UserService userService;
     private final SubmissionService submissionService;
@@ -162,8 +163,8 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
 
         if (update.getMessage().hasDocument()) {
             Document document = update.getMessage().getDocument();
-            if (document.getFileSize() > sizeLimit) {
-                sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE);
+            if (document.getFileSize() > sizeLimitMb * 1024 * 1024) {
+                sendMessage(update, sender, String.format(UPLOADSOLUTION_TOO_LARGE_FILE, sizeLimitMb));
                 return;
             }
             if (document.getMimeType().startsWith("image")) {
@@ -225,8 +226,8 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
             merger.close();
 
             long size = submission.length();
-            if (size > sizeLimit) {
-                sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, STOP_WORD_BUTTON);
+            if (size > sizeLimitMb * 1024 * 1024) {
+                sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, sizeLimitMb), STOP_WORD_BUTTON);
                 userState.getUploadedParts().clear();
                 return;
             }

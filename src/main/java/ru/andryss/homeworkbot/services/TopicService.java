@@ -28,4 +28,11 @@ public interface TopicService {
      * @return list of all created topics
      */
     List<String> listTopics();
+
+    /**
+     * Removes topic with given name (and all uploaded submissions)
+     *
+     * @param topic topic name to remove
+     */
+    void removeTopic(String topic);
 }

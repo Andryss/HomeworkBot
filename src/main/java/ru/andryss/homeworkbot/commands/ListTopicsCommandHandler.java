@@ -38,17 +38,9 @@ public class ListTopicsCommandHandler extends SingleActionCommandHandler {
         List<String> topics = topicService.listTopics();
 
         if (topics.isEmpty()) {
-            sendMessage(update, sender, LISTTOPICS_NO_TOPICS);
+            sendMessage(update, sender, NO_TOPICS);
         } else {
-            sendMessage(update, sender, String.format(LISTTOPICS_TOPICS_LIST, createTopicsString(topics)));
+            sendMessage(update, sender, String.format(TOPICS_LIST, buildNumberedList(topics)));
         }
-    }
-
-    private String createTopicsString(List<String> topics) {
-        StringBuilder builder = new StringBuilder();
-        for (String topic : topics) {
-            builder.append('\n').append("• ").append(topic);
-        }
-        return builder.toString();
     }
 }
