@@ -28,20 +28,27 @@ public interface SubmissionService {
     List<String> listAvailableTopics(Long userId);
 
     /**
-     * List all submissions grouped by topics ({@link TopicSubmissionsDto}).
+     * List all submissions grouped by topics ({@link TopicSubmissionsInfo}).
      *
      * @return all submissions
      */
-    List<TopicSubmissionsDto> listAllTopicsSubmissions();
+    List<TopicSubmissionsInfo> listAllSubmissionsGrouped();
+
+    /**
+     * List all submissions by given topic ({@link SubmissionInfo}).
+     *
+     * @return submissions
+     */
+    TopicSubmissionsInfo listAllTopicSubmissions(String topic);
 
     /**
      * All submission by topic
      */
     @Data
     @AllArgsConstructor
-    class TopicSubmissionsDto {
+    class TopicSubmissionsInfo {
         private String topicName;
-        private List<SubmissionDto> submissions;
+        private List<SubmissionInfo> submissions;
     }
 
     /**
@@ -49,7 +56,7 @@ public interface SubmissionService {
      */
     @Data
     @AllArgsConstructor
-    class SubmissionDto {
+    class SubmissionInfo {
         private String fileId;
         private String extension;
         private String uploadedUserName;

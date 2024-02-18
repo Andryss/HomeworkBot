@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -96,8 +95,8 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
             commandHandler.onCommandReceived(update, this, () -> userToCommand.put(userId, NO_COMMAND));
 
-        } catch (TelegramApiException e) {
-            log.error("TelegramApiException during update", e);
+        } catch (Exception e) {
+            log.error("Unhandled exception during update", e);
             try {
                 sendMessage(update, this, DISPATCHER_ERROR);
             } catch (TelegramApiException ex) {

@@ -18,6 +18,23 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
      * @param userId user id to search
      * @return list of submitted topics
      */
-    @Query(value = "select name from submissions join topics on submissions.topic_id = topics.id where user_id = :userId", nativeQuery = true)
+    @Query(value = """
+        select t.name
+        from submissions s join topics t on s.topic_name = t.name
+        where s.user_id = :userId
+        """, nativeQuery = true)
     List<String> listTopicsSubmittedBy(Long userId);
+
+    /**
+     * Finds all submission on given topic
+     *
+     * @param topic topic name to search
+     * @return submissions
+     */
+    @Query(value = """
+        select s.file_id, s.extension, s.upload_datetime, s.topic_name, s.user_id
+        from submissions s join topics t on s.topic_name = t.name
+        where t.name = :topic
+        """, nativeQuery = true)
+    List<SubmissionEntity> findAllByTopic(String topic);
 }

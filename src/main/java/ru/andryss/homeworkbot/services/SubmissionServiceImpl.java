@@ -36,7 +36,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public void uploadSubmission(Long userId, String topicName, String fileId, String extension) {
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoSuchUserException(String.valueOf(userId)));
-        TopicEntity topic = topicRepository.findByName(topicName).orElseThrow(() -> new NoSuchTopicException(topicName));
+        TopicEntity topic = topicRepository.findById(topicName).orElseThrow(() -> new NoSuchTopicException(topicName));
 
         SubmissionEntity submission = new SubmissionEntity();
         submission.setFileId(fileId);
@@ -49,19 +49,32 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public List<TopicSubmissionsDto> listAllTopicsSubmissions() {
-        Map<String, TopicSubmissionsDto> topicNameToSubmissions = new HashMap<>();
+    public List<TopicSubmissionsInfo> listAllSubmissionsGrouped() {
+        Map<String, TopicSubmissionsInfo> topicNameToSubmissions = new HashMap<>();
 
         List<SubmissionEntity> allSubmissions = submissionRepository.findAll();
         for (SubmissionEntity submission : allSubmissions) {
             String topicName = submission.getTopic().getName();
-            TopicSubmissionsDto topicSubmissionsDto = topicNameToSubmissions.computeIfAbsent(topicName,
-                    name -> new TopicSubmissionsDto(name, new ArrayList<>()));
-            topicSubmissionsDto.getSubmissions().add(
-                    new SubmissionDto(submission.getFileId(), submission.getExtension(), submission.getUser().getName())
+            TopicSubmissionsInfo topicSubmissionsInfo = topicNameToSubmissions.computeIfAbsent(topicName,
+                    name -> new TopicSubmissionsInfo(name, new ArrayList<>()));
+            topicSubmissionsInfo.getSubmissions().add(
+                    new SubmissionInfo(submission.getFileId(), submission.getExtension(), submission.getUser().getName())
             );
         }
 
         return new ArrayList<>(topicNameToSubmissions.values());
+    }
+
+    @Override
+    public TopicSubmissionsInfo listAllTopicSubmissions(String topic) {
+        TopicSubmissionsInfo info = new TopicSubmissionsInfo(topic, new ArrayList<>());
+
+        List<SubmissionEntity> submissions = submissionRepository.findAllByTopic(topic);
+        for (SubmissionEntity submission : submissions) {
+            info.getSubmissions().add(
+                    new SubmissionInfo(submission.getFileId(), submission.getExtension(), submission.getUser().getName())
+            );
+        }
+        return info;
     }
 }

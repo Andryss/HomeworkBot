@@ -65,7 +65,15 @@ public class Messages {
     static final String LISTUNSOLVED_NO_UNSOLVED_TOPICS = "Вы решили все возможные домашние задания (партия довольна)\n/help";
 
     static final String DUMPSOLUTIONS_NO_SUBMISSIONS = "Нет загруженных решений для выгрузки";
-    static final String DUMPSOLUTIONS_START_DUMP = "Начинаю выгрузку решений...\n(это может занять некоторое время)";
+    static final String DUMPSOLUTIONS_START_DUMP = "Начинаю выгрузку всех решений...\n(это может занять некоторое время)";
+    static final String DUMPSOLUTIONS_FINISH_DUMP = "Выгрузка решений успешно завершена";
     static final String DUMPSOLUTIONS_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
+
+    static final String DUMPTOPIC_NO_TOPICS = "Нет домашних заданий для выгрузки";
+    static final String DUMPTOPIC_TOPICS_LIST = "Список домашних заданий для выгрузки: %s";
+    static final String DUMPTOPIC_ASK_FOR_TOPIC_NAME = "Выберите домашнее задание для выгрузки:";
+    static final String DUMPTOPIC_NO_SUBMISSIONS = "Нет загруженных решений для выгрузки";
+    static final String DUMPTOPIC_START_DUMP = "Начинаю выгрузку решений...\n(это может занять некоторое время)";
+    static final String DUMPTOPIC_ERROR_OCCURED = "При выгрузке решений произошла ошибка (попробуйте еще раз позже)";
 
 }

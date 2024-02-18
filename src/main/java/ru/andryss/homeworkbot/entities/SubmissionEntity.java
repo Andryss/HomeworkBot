@@ -39,7 +39,7 @@ public class SubmissionEntity {
      * Topic on which submission was uploaded
      */
     @ManyToOne
-    @JoinColumn(name = "topic_id", referencedColumnName = "id")
+    @JoinColumn(name = "topic_name", referencedColumnName = "name")
     private TopicEntity topic;
     /**
      * User which uploaded this submission

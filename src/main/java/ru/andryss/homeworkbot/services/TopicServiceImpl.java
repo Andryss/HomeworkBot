@@ -20,7 +20,7 @@ public class TopicServiceImpl implements TopicService {
 
     @Override
     public boolean topicExists(String topic) {
-        return topicRepository.existsByName(topic);
+        return topicRepository.existsById(topic);
     }
 
     @Override

@@ -20,14 +20,9 @@ import java.time.LocalDateTime;
 @Table(name = "topics")
 public class TopicEntity {
     /**
-     * Topic identifier
-     */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    /**
      * Topic name
      */
+    @Id
     private String name;
     /**
      * User who created this topic
