@@ -18,6 +18,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.poi.xwpf.converter.pdf.PdfConverter;
 import org.apache.poi.xwpf.converter.pdf.PdfOptions;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
@@ -36,6 +37,8 @@ import java.util.List;
 import static com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED;
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
+import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneColumnKeyboard;
+import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
 @Slf4j
 @Component
@@ -49,11 +52,13 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
     private static final int WAITING_FOR_SUBMISSION = 1;
     private static final int WAITING_FOR_CONFIRMATION = 2;
 
-    private static final int USER_SUBMISSIONS_LIMIT = 10;
-    private static final int SIZE_5MB = 5 * 1024 * 1024;
+    private static final List<List<String>> YES_NO_BUTTONS = buildOneRowKeyboard(YES_ANSWER, NO_ANSWER);
+    private static final List<List<String>> STOP_WORD_BUTTON = buildOneRowKeyboard(STOP_WORD);
 
-    private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
-    private static final List<List<String>> STOP_WORD_BUTTON = List.of(List.of(STOP_WORD));
+    @Value("${user.submission.parts.limit}")
+    private static int partsLimit;
+    @Value("${user.submission.size.limit}")
+    private static int sizeLimit;
 
     private final UserService userService;
     private final SubmissionService submissionService;
@@ -91,14 +96,12 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         }
 
         StringBuilder builder = new StringBuilder();
-        List<List<String>> topicsKeyboard = new ArrayList<>(availableTopics.size());
         for (String topic : availableTopics) {
             builder.append('\n').append("• ").append(topic);
-            topicsKeyboard.add(List.of(topic));
         }
 
         sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, builder));
-        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, topicsKeyboard);
+        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, buildOneColumnKeyboard(availableTopics));
 
         putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME, availableTopics));
     }
@@ -120,14 +123,14 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         List<String> availableTopics = userState.getAvailableTopics();
 
         if (!update.getMessage().hasText()) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, availableTopics.stream().map(List::of).toList());
+            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildOneColumnKeyboard(availableTopics));
             return;
         }
 
         String topic = update.getMessage().getText();
 
         if (!availableTopics.contains(topic)) {
-            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, availableTopics.stream().map(List::of).toList());
+            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildOneColumnKeyboard(availableTopics));
             return;
         }
 
@@ -144,7 +147,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         UserState userState = getUserState(userId);
 
         if (userState.getUploadedParts() == null) {
-            userState.setUploadedParts(new ArrayList<>(USER_SUBMISSIONS_LIMIT));
+            userState.setUploadedParts(new ArrayList<>(partsLimit));
         }
         List<PdfTranslator> submissions = userState.getUploadedParts();
 
@@ -159,7 +162,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
 
         if (update.getMessage().hasDocument()) {
             Document document = update.getMessage().getDocument();
-            if (document.getFileSize() > SIZE_5MB) {
+            if (document.getFileSize() > sizeLimit) {
                 sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE);
                 return;
             }
@@ -187,7 +190,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
             submissions.add(new TextPdfTranslator(update.getMessage().getText()));
         }
 
-        if (submissions.size() < USER_SUBMISSIONS_LIMIT) {
+        if (submissions.size() < partsLimit) {
             return;
         }
 
@@ -222,7 +225,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
             merger.close();
 
             long size = submission.length();
-            if (size > SIZE_5MB) {
+            if (size > sizeLimit) {
                 sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, STOP_WORD_BUTTON);
                 userState.getUploadedParts().clear();
                 return;

@@ -14,13 +14,13 @@ import ru.andryss.homeworkbot.services.TopicService;
 import ru.andryss.homeworkbot.services.UserService;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.DumpUtils.sendSolutionsDump;
+import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneColumnKeyboard;
 
 @Slf4j
 @Component
@@ -65,7 +65,7 @@ public class DumpTopicCommandHandler extends AbstractCommandHandler {
             }
 
             sendMessage(update, sender, String.format(DUMPTOPIC_TOPICS_LIST, builder));
-            sendMessageWithKeyboard(update, sender, DUMPTOPIC_ASK_FOR_TOPIC_NAME, buildKeyBoard(topics));
+            sendMessageWithKeyboard(update, sender, DUMPTOPIC_ASK_FOR_TOPIC_NAME, buildOneColumnKeyboard(topics));
         }
     }
 
@@ -75,14 +75,14 @@ public class DumpTopicCommandHandler extends AbstractCommandHandler {
         List<String> topics = topicService.listTopics();
 
         if (!update.getMessage().hasText()) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildKeyBoard(topics));
+            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildOneColumnKeyboard(topics));
             return;
         }
 
         String topic = update.getMessage().getText();
 
         if (!topics.contains(topic)) {
-            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildKeyBoard(topics));
+            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildOneColumnKeyboard(topics));
             return;
         }
 
@@ -102,13 +102,5 @@ public class DumpTopicCommandHandler extends AbstractCommandHandler {
             log.error("error occurred during solutions dump", e);
             sendMessage(update, sender, DUMPTOPIC_ERROR_OCCURED);
         }
-    }
-
-    private List<List<String>> buildKeyBoard(List<String> rows) {
-        List<List<String>> keyboard = new ArrayList<>(rows.size());
-        for (String row : rows) {
-            keyboard.add(List.of(row));
-        }
-        return keyboard;
     }
 }

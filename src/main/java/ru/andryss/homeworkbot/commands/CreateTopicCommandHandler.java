@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import static ru.andryss.homeworkbot.commands.Messages.*;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
+import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
 @Component
 @RequiredArgsConstructor
@@ -30,7 +31,7 @@ public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCo
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_CONFIRMATION = 1;
 
-    private static final List<List<String>> YES_NO_BUTTONS = List.of(List.of(YES_ANSWER, NO_ANSWER));
+    private static final List<List<String>> YES_NO_BUTTONS = buildOneRowKeyboard(YES_ANSWER, NO_ANSWER);
 
     private final UserService userService;
     private final LeaderService leaderService;
