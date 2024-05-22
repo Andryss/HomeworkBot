@@ -11,21 +11,20 @@ import lombok.Setter;
 /**
  * Entity describing user
  */
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
-@Entity
 @Table(name = "users")
 public class UserEntity {
     /**
      * Telegram user identifier
      */
     @Id
-    private Long id;
+    Long id;
     /**
      * Name, surname, patronymic
      */
-    private String name;
+    String name;
 }

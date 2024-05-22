@@ -1,4 +1,4 @@
-package ru.andryss.homeworkbot.commands;
+package ru.andryss.homeworkbot.commands.handlers;
 
 import lombok.Data;
 import lombok.Getter;
@@ -123,14 +123,12 @@ public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCo
 
         if (confirmation.equals(NO_ANSWER)) {
             sendMessage(update, sender, CREATETOPIC_CONFIRMATION_FAILURE);
-            clearUserState(userId);
             exitForUser(userId);
             return;
         }
 
         topicService.createTopic(userId, getUserState(userId).getCreatedTopic());
         sendMessage(update, sender, CREATETOPIC_CONFIRMATION_SUCCESS);
-        clearUserState(userId);
         exitForUser(userId);
     }
 }

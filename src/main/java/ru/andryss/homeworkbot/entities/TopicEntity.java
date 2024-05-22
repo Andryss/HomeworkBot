@@ -1,38 +1,36 @@
 package ru.andryss.homeworkbot.entities;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Entity describing topic
  */
+@Entity
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-
-@Entity
 @Table(name = "topics")
 public class TopicEntity {
     /**
-     * Topic name
+     * Topic id
      */
     @Id
-    private String name;
+    String id;
+    /**
+     * Topic name
+     */
+    String name;
     /**
      * User who created this topic
      */
-    @ManyToOne
-    @JoinColumn(name = "created_user_id", referencedColumnName = "id")
-    private UserEntity createdUser;
+    Long createdBy;
     /**
      * Creation timestamp
      */
-    @Column(name = "create_datetime", nullable = false)
-    private LocalDateTime createDatetime;
+    Instant createdAt;
 }

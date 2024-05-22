@@ -12,6 +12,8 @@ import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.handlers.CommandHandler;
+import ru.andryss.homeworkbot.commands.handlers.SingleActionCommandHandler;
 
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         log.info("Received: {}", update);
 
         if (!update.hasMessage() || !update.getMessage().getChat().getType().equals("private")) {
-            log.warn("Unknown update, skipping: {}", update);
+            log.warn("Unknown update {}, skipping", update.getUpdateId());
             return;
         }
 
@@ -70,7 +72,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             if (command.equals(NO_COMMAND)) {
                 String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
                 if (userCommand.equals(NO_COMMAND)) {
-                    log.warn("No command update: {}", update);
+                    log.warn("No command update {}", update.getUpdateId());
                     sendMessage(update, this, DISPATCHER_NO_COMMAND);
                     return;
                 }
@@ -78,7 +80,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
                 try {
                     handlerByCommand.get(userCommand).onUpdateReceived(update, this);
                 } catch (Exception e) {
-                    log.error("Exception during update", e);
+                    log.error(String.format("Exception during update %s", update.getUpdateId()), e);
                     sendMessage(update, this, DISPATCHER_HANDLER_ERROR);
                 }
                 return;
@@ -86,7 +88,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
 
             CommandHandler commandHandler = handlerByCommand.get(command);
             if (commandHandler == null) {
-                log.warn("Unknown command {} update: {}", command, update);
+                log.warn("Unknown command {} update {}", command, update.getUpdateId());
                 sendMessage(update, this, DISPATCHER_UNKNOWN_COMMAND);
                 return;
             }
@@ -96,7 +98,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             commandHandler.onCommandReceived(update, this, () -> userToCommand.put(userId, NO_COMMAND));
 
         } catch (Exception e) {
-            log.error("Unhandled exception during update", e);
+            log.error(String.format("Unhandled exception during update %s", update.getUpdateId()), e);
             try {
                 sendMessage(update, this, DISPATCHER_ERROR);
             } catch (TelegramApiException ex) {

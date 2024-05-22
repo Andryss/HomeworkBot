@@ -1,6 +1,7 @@
 package ru.andryss.homeworkbot.services;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,19 +14,19 @@ public interface SubmissionService {
      * Upload user submission
      *
      * @param userId uploading user
-     * @param topicName topic to upload
+     * @param topicId topic to upload
      * @param fileId telegram file id
      * @param extension extension of uploading file
      */
-    void uploadSubmission(Long userId, String topicName, String fileId, String extension);
+    void uploadSubmission(Long userId, String topicId, String fileId, String extension);
 
     /**
      * List available topics for user to upload
      *
      * @param userId user to search
-     * @return list of topics
+     * @return list of topics mapped to id
      */
-    List<String> listAvailableTopics(Long userId);
+    Map<String, String> listAvailableTopics(Long userId);
 
     /**
      * List all submissions grouped by topics ({@link TopicSubmissionsInfo}).

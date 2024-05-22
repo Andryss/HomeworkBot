@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import ru.andryss.homeworkbot.entities.SubmissionEntity;
+import ru.andryss.homeworkbot.entities.UserSubmissionInfo;
 
 import java.util.List;
 
@@ -22,7 +23,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
      */
     @Query(value = """
         select t.name
-        from submissions s join topics t on s.topic_name = t.name
+        from submissions s join topics t on s.topic_id = t.id
         where s.user_id = :userId
         """, nativeQuery = true)
     List<String> listTopicsSubmittedBy(Long userId);
@@ -34,11 +35,11 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
      * @return submissions
      */
     @Query(value = """
-        select s.file_id, s.extension, s.upload_datetime, s.topic_name, s.user_id
-        from submissions s join topics t on s.topic_name = t.name
+        select new ru.andryss.homeworkbot.entities.UserSubmissionInfo(t.name, s.topicId, s.topicId, u.name)
+        from SubmissionEntity s join TopicEntity t on s.topicId = t.id join UserEntity u on s.userId = u.id
         where t.name = :topic
-        """, nativeQuery = true)
-    List<SubmissionEntity> findAllByTopic(String topic);
+        """)
+    List<UserSubmissionInfo> findAllByTopic(String topic);
 
     /**
      * Removes all submission on given topic
@@ -47,6 +48,19 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
      */
     @Modifying
     @Transactional
-    @Query(value = "delete from submissions where topic_name = :topic", nativeQuery = true)
+    @Query(value = """
+        delete from submissions where topic_id = (select from topics where name = :topic)
+        """, nativeQuery = true)
     void deleteAllByTopic(String topic);
+
+    /**
+     * Finds all submissions
+     *
+     * @return submissions
+     */
+    @Query("""
+        select new ru.andryss.homeworkbot.entities.UserSubmissionInfo(t.name, s.topicId, s.topicId, u.name)
+        from SubmissionEntity s join TopicEntity t on s.topicId = t.id join UserEntity u on s.userId = u.id
+        """)
+    List<UserSubmissionInfo> findAllSubmissions();
 }

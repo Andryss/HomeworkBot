@@ -3,20 +3,17 @@ package ru.andryss.homeworkbot.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.andryss.homeworkbot.entities.TopicEntity;
-import ru.andryss.homeworkbot.entities.UserEntity;
-import ru.andryss.homeworkbot.exceptions.NoSuchUserException;
 import ru.andryss.homeworkbot.repositories.SubmissionRepository;
 import ru.andryss.homeworkbot.repositories.TopicRepository;
-import ru.andryss.homeworkbot.repositories.UserRepository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class TopicServiceImpl implements TopicService {
 
-    private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final SubmissionRepository submissionRepository;
 
@@ -27,12 +24,11 @@ public class TopicServiceImpl implements TopicService {
 
     @Override
     public void createTopic(Long userId, String name) {
-        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new NoSuchUserException(String.valueOf(userId)));
-
         TopicEntity topic = new TopicEntity();
+        topic.setId(UUID.randomUUID().toString());
         topic.setName(name);
-        topic.setCreatedUser(user);
-        topic.setCreateDatetime(LocalDateTime.now());
+        topic.setCreatedBy(userId);
+        topic.setCreatedAt(Instant.now());
 
         topicRepository.save(topic);
     }

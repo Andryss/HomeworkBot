@@ -1,4 +1,4 @@
-package ru.andryss.homeworkbot.commands;
+package ru.andryss.homeworkbot.commands.handlers;
 
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
@@ -30,9 +30,7 @@ import ru.andryss.homeworkbot.services.UserService;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 import static com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED;
 import static ru.andryss.homeworkbot.commands.Messages.*;
@@ -68,12 +66,13 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
     @Data
     static class UserState {
         private int state;
-        private List<String> availableTopics;
+        private Map<String, String> availableTopics;
         private String uploadedTopic;
+        private String uploadedTopicName;
         private List<PdfTranslator> uploadedParts;
         private String uploadedFile;
         private String uploadedFileExtension;
-        UserState(int state, List<String> availableTopics) {
+        UserState(int state, Map<String, String> availableTopics) {
             this.state = state;
             this.availableTopics = availableTopics;
         }
@@ -89,20 +88,17 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
             return;
         }
 
-        List<String> availableTopics = submissionService.listAvailableTopics(userId);
+        Map<String, String> availableTopics = submissionService.listAvailableTopics(userId);
         if (availableTopics.isEmpty()) {
             sendMessage(update, sender, UPLOADSOLUTION_NO_AVAILABLE_TOPICS);
             exitForUser(userId);
             return;
         }
 
-        StringBuilder builder = new StringBuilder();
-        for (String topic : availableTopics) {
-            builder.append('\n').append("• ").append(topic);
-        }
+        List<String> topicNames = new ArrayList<>(availableTopics.keySet());
 
-        sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, builder));
-        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, buildOneColumnKeyboard(availableTopics));
+        sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, buildNumberedList(topicNames)));
+        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, buildOneColumnKeyboard(topicNames));
 
         putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME, availableTopics));
     }
@@ -121,21 +117,23 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
     private void onGetTopicName(Update update, AbsSender sender) throws TelegramApiException {
         Long userId = update.getMessage().getFrom().getId();
         UserState userState = getUserState(userId);
-        List<String> availableTopics = userState.getAvailableTopics();
+        Map<String, String> availableTopics = userState.getAvailableTopics();
+        List<String> topicNames = new ArrayList<>(availableTopics.keySet());
 
         if (!update.getMessage().hasText()) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildOneColumnKeyboard(availableTopics));
+            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildOneColumnKeyboard(topicNames));
             return;
         }
 
         String topic = update.getMessage().getText();
 
-        if (!availableTopics.contains(topic)) {
-            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildOneColumnKeyboard(availableTopics));
+        if (!availableTopics.containsKey(topic)) {
+            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildOneColumnKeyboard(topicNames));
             return;
         }
 
-        userState.setUploadedTopic(topic);
+        userState.setUploadedTopicName(topic);
+        userState.setUploadedTopic(availableTopics.get(topic));
 
         sendMessage(update, sender, UPLOADSOLUTION_SUBMISSION_RULES);
         sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION, STOP_WORD_BUTTON);
@@ -245,7 +243,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         userState.setUploadedFile(submissionFileId);
         userState.setUploadedFileExtension(".pdf");
 
-        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopic()), YES_NO_BUTTONS);
+        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopicName()), YES_NO_BUTTONS);
 
         userState.setState(WAITING_FOR_CONFIRMATION);
     }
@@ -282,7 +280,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         userState.setUploadedFile(submissionFileId);
         userState.setUploadedFileExtension(extension);
 
-        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopic()), YES_NO_BUTTONS);
+        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopicName()), YES_NO_BUTTONS);
 
         userState.setState(WAITING_FOR_CONFIRMATION);
     }
@@ -299,7 +297,6 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
 
         if (confirmation.equals(NO_ANSWER)) {
             sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_FAILURE);
-            clearUserState(userId);
             exitForUser(userId);
             return;
         }
@@ -307,7 +304,6 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         UserState userState = getUserState(userId);
         submissionService.uploadSubmission(userId, userState.getUploadedTopic(), userState.getUploadedFile(), userState.getUploadedFileExtension());
         sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_SUCCESS);
-        clearUserState(userId);
         exitForUser(userId);
     }
 

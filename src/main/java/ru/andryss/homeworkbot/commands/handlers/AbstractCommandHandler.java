@@ -1,4 +1,4 @@
-package ru.andryss.homeworkbot.commands;
+package ru.andryss.homeworkbot.commands.handlers;
 
 import java.util.List;
 import java.util.Map;

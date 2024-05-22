@@ -1,4 +1,4 @@
-package ru.andryss.homeworkbot.commands;
+package ru.andryss.homeworkbot.commands.handlers;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import static ru.andryss.homeworkbot.commands.Messages.*;
 
 @Component
 @RequiredArgsConstructor
-public class WhoAmICommand extends SingleActionCommandHandler {
+public class WhoAmICommandHandler extends SingleActionCommandHandler {
 
     @Getter
     private final CommandInfo commandInfo = new CommandInfo("/whoami", "вывести информацию о пользователе");

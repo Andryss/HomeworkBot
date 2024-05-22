@@ -1,4 +1,4 @@
-package ru.andryss.homeworkbot.commands;
+package ru.andryss.homeworkbot.commands.handlers;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,9 +26,11 @@ public abstract class StateCommandHandler<T> extends AbstractCommandHandler {
     }
 
     /**
-     * Clears state for given user
+     * Clears user state before exit
      */
-    protected void clearUserState(long userId) {
+    @Override
+    protected void exitForUser(Long userId) {
         userIdToState.remove(userId);
+        super.exitForUser(userId);
     }
 }

@@ -1,4 +1,4 @@
-package ru.andryss.homeworkbot.commands;
+package ru.andryss.homeworkbot.commands.handlers;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
