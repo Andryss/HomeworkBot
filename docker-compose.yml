@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+
+  app:
+    container_name: homework-bot-app
+    build: .
+    environment:
+      HB_BOT_USERNAME: ${HB_BOT_USERNAME}
+      HB_BOT_API_TOKEN: ${HB_BOT_API_TOKEN}
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      HB_LEADERS_USERNAMES: ${HB_LEADERS_USERNAMES}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+
+  postgres:
+    container_name: homework-bot-postgres
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge

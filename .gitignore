@@ -1,3 +1,4 @@
+.env
 logs
 HELP.md
 target/
@@ -32,6 +33,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-
-src/main/resources/application.properties
