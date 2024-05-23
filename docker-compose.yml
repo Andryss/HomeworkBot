@@ -6,7 +6,6 @@ services:
     container_name: homework-bot-app
     build: .
     environment:
-      HB_BOT_USERNAME: ${HB_BOT_USERNAME}
       HB_BOT_API_TOKEN: ${HB_BOT_API_TOKEN}
       POSTGRES_URL: jdbc:postgresql://postgres:5432/postgres
       POSTGRES_USER: postgres
