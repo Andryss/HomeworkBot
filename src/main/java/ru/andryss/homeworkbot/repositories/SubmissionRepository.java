@@ -35,7 +35,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
      * @return submissions
      */
     @Query(value = """
-        select new ru.andryss.homeworkbot.entities.UserSubmissionInfo(t.name, s.topicId, s.topicId, u.name)
+        select new ru.andryss.homeworkbot.entities.UserSubmissionInfo(t.name, s.fileId, s.extension, u.name)
         from SubmissionEntity s join TopicEntity t on s.topicId = t.id join UserEntity u on s.userId = u.id
         where t.name = :topic
         """)
@@ -49,7 +49,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
     @Modifying
     @Transactional
     @Query(value = """
-        delete from submissions where topic_id = (select from topics where name = :topic)
+        delete from submissions where topic_id = (select id from topics where name = :topic)
         """, nativeQuery = true)
     void deleteAllByTopic(String topic);
 
@@ -59,7 +59,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
      * @return submissions
      */
     @Query("""
-        select new ru.andryss.homeworkbot.entities.UserSubmissionInfo(t.name, s.topicId, s.topicId, u.name)
+        select new ru.andryss.homeworkbot.entities.UserSubmissionInfo(t.name, s.fileId, s.extension, u.name)
         from SubmissionEntity s join TopicEntity t on s.topicId = t.id join UserEntity u on s.userId = u.id
         """)
     List<UserSubmissionInfo> findAllSubmissions();
