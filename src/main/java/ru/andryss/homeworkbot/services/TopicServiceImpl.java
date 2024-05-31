@@ -19,7 +19,7 @@ public class TopicServiceImpl implements TopicService {
 
     @Override
     public boolean topicExists(String topic) {
-        return topicRepository.existsById(topic);
+        return topicRepository.existsByName(topic);
     }
 
     @Override
@@ -41,6 +41,6 @@ public class TopicServiceImpl implements TopicService {
     @Override
     public void removeTopic(String topic) {
         submissionRepository.deleteAllByTopic(topic);
-        topicRepository.deleteById(topic);
+        topicRepository.removeByName(topic);
     }
 }
