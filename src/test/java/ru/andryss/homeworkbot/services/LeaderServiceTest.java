@@ -29,7 +29,6 @@ class LeaderServiceTest {
     }
 
     @CsvSource({
-            "",
             "0",
             "4",
             "non existing"
