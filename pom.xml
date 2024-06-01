@@ -120,8 +120,6 @@
                     <excludes>
                         <!-- exclude main application class -->
                         <exclude>ru/andryss/homeworkbot/HomeworkBotApplication*</exclude>
-                        <!-- exclude command handlers -->
-                        <exclude>ru/andryss/homeworkbot/commands/**</exclude>
                         <!-- exclude exceptions classes -->
                         <exclude>ru/andryss/homeworkbot/exceptions/**</exclude>
                         <!-- exclude database entities -->

@@ -48,6 +48,7 @@ public class StartCommandHandler extends AbstractCommandHandler {
         if (userService.userNameExists(userName)) {
             sendMessage(update, sender, START_ALREADY_REGISTERED);
             exitForUser(userId);
+            return;
         }
 
         userService.putUserName(userId, userName);

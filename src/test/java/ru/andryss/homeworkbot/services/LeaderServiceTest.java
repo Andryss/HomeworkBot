@@ -17,9 +17,9 @@ class LeaderServiceTest {
     LeaderService leaderService;
 
     @CsvSource({
-            "1",
+            "God",
             "2",
-            "3"
+            "3",
     })
     @ParameterizedTest
     void isLeader_userIsLeader_returnTrue(String leaderUsername) {
@@ -31,7 +31,8 @@ class LeaderServiceTest {
     @CsvSource({
             "0",
             "4",
-            "non existing"
+            "non existing",
+            "slave",
     })
     @ParameterizedTest
     void isLeader_userIsNotLeader_returnFalse(String nonLeaderUsername) {

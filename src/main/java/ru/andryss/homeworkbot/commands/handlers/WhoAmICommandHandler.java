@@ -13,6 +13,7 @@ import ru.andryss.homeworkbot.services.UserService;
 import java.util.Optional;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
+import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -30,9 +31,9 @@ public class WhoAmICommandHandler extends SingleActionCommandHandler {
         Optional<String> userName = userService.getUserName(userId);
 
         if (userName.isEmpty()) {
-            AbsSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
+            sendMessage(update, sender, REGISTER_FIRST);
         } else {
-            AbsSenderUtils.sendMessage(update, sender, String.format(WHOAMI_ANSWER, userName.get()));
+            sendMessage(update, sender, String.format(WHOAMI_ANSWER, userName.get()));
         }
     }
 }
