@@ -27,11 +27,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build project
-        run: mvn clean install
-
       - name: Run tests and checks
-        run: mvn verify
+        run: mvn clean verify
 
       - name: Upload JaCoCo report
         uses: actions/upload-artifact@v2
