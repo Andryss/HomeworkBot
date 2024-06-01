@@ -125,6 +125,7 @@
                         <!-- exclude database entities -->
                         <exclude>ru/andryss/homeworkbot/entities/**</exclude>
                         <!-- exclude data holding objects -->
+                        <exclude>ru/andryss/homeworkbot/commands/handlers/*$UserState*</exclude>
                         <exclude>ru/andryss/homeworkbot/services/SubmissionService$TopicSubmissionsInfo*</exclude>
                         <exclude>ru/andryss/homeworkbot/services/SubmissionService$SubmissionInfo*</exclude>
                     </excludes>
