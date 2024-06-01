@@ -151,4 +151,25 @@ class RemoveTopicCommandHandlerTest extends CommandHandlerBaseTest {
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, "I don't know"));
         verifySendMessage(chatIdStr, ASK_FOR_RESENDING_CONFIRMATION);
     }
+
+    @Test
+    @SneakyThrows
+    void receiveRemoveTopic_confirmationFailure_sendFailureMessage() {
+        long chatId = 100058L;
+        long userId = 1000058L;
+        String chatIdStr = Long.toString(chatId);
+        String topic = "Look topic";
+
+        register(chatId, userId, "receiveRemoveTopic confirmationFailure sendFailureMessage");
+        createTopic(chatId, userId, topic);
+
+        onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
+        verifySendMessage(chatIdStr, REMOVETOPIC_ASK_FOR_TOPIC_NAME);
+
+        onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, topic));
+        verifySendMessage(chatIdStr, String.format(REMOVETOPIC_ASK_FOR_CONFIRMATION, topic));
+
+        onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, NO_ANSWER));
+        verifySendMessage(chatIdStr, REMOVETOPIC_CONFIRMATION_FAILURE);
+    }
 }
