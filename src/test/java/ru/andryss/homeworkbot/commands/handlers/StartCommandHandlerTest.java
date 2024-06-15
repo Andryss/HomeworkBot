@@ -27,13 +27,11 @@ class StartCommandHandlerTest extends CommandHandlerBaseTest {
     })
     @SneakyThrows
     void receiveStart_validUsername_registrationSuccess(Long chatId, Long userId, String user) {
-        String chatIdStr = chatId.toString();
-
         onCommandReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, START_ASK_FOR_FIRSTNAME_LASTNAME);
+        verifySendMessage(START_ASK_FOR_FIRSTNAME_LASTNAME);
 
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, user));
-        verifySendMessage(chatIdStr, String.format(START_ANSWER_FOR_FIRSTNAME_LASTNAME, user));
+        verifySendMessage(START_ANSWER_FOR_FIRSTNAME_LASTNAME, user);
     }
 
     @ParameterizedTest
@@ -44,13 +42,11 @@ class StartCommandHandlerTest extends CommandHandlerBaseTest {
     })
     @SneakyThrows
     void receiveStart_invalidCharacters_getWarningMessage(Long chatId, Long userId, String user) {
-        String chatIdStr = chatId.toString();
-
         onCommandReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, START_ASK_FOR_FIRSTNAME_LASTNAME);
+        verifySendMessage(START_ASK_FOR_FIRSTNAME_LASTNAME);
 
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, user));
-        verifySendMessage(chatIdStr, START_ILLEGAL_CHARACTERS);
+        verifySendMessage(START_ILLEGAL_CHARACTERS);
     }
 
     @Test
@@ -58,19 +54,18 @@ class StartCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveStart_tooLongUsername_getWarningMessage() {
         long chatId = 10008L;
         long userId = 100008L;
-        String chatIdStr = Long.toString(chatId);
         String user = "A".repeat(71);
 
         onCommandReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, START_ASK_FOR_FIRSTNAME_LASTNAME);
+        verifySendMessage(START_ASK_FOR_FIRSTNAME_LASTNAME);
 
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, user));
-        verifySendMessage(chatIdStr, START_TOO_MANY_CHARACTERS);
+        verifySendMessage(START_TOO_MANY_CHARACTERS);
 
         String newUser = user.substring(1);
 
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, newUser));
-        verifySendMessage(chatIdStr, String.format(START_ANSWER_FOR_FIRSTNAME_LASTNAME, newUser));
+        verifySendMessage(START_ANSWER_FOR_FIRSTNAME_LASTNAME, newUser);
     }
 
     @Test
@@ -78,24 +73,22 @@ class StartCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveStart_alreadyRegistered_getWarningMessage() {
         long chatId = 10009L;
         long userId = 100009L;
-        String chatIdStr = Long.toString(chatId);
         String user = "Some some some";
 
         onCommandReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, START_ASK_FOR_FIRSTNAME_LASTNAME);
+        verifySendMessage(START_ASK_FOR_FIRSTNAME_LASTNAME);
 
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, user));
-        verifySendMessage(chatIdStr, String.format(START_ANSWER_FOR_FIRSTNAME_LASTNAME, user));
+        verifySendMessage(START_ANSWER_FOR_FIRSTNAME_LASTNAME, user);
 
         long newChat = chatId + 1;
         long newUserId = userId + 1;
-        String newChatIdStr = Long.toString(newChat);
 
         onCommandReceived(commandHandler, createEmptyUpdate(newChat, newUserId));
-        verifySendMessage(newChatIdStr, START_ASK_FOR_FIRSTNAME_LASTNAME);
+        verifySendMessage(START_ASK_FOR_FIRSTNAME_LASTNAME);
 
         onUpdateReceived(commandHandler, createTextUpdate(newChat, newUserId, user));
-        verifySendMessage(newChatIdStr, START_ALREADY_REGISTERED);
+        verifySendMessage(START_ALREADY_REGISTERED);
     }
 
 }

@@ -25,10 +25,9 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_notRegistered_sendRegisterFirst() {
         long chatId = 10070L;
         long userId = 100070L;
-        String chatIdStr = Long.toString(chatId);
 
         onCommandReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, REGISTER_FIRST);
+        verifySendMessage(REGISTER_FIRST);
     }
 
     @Test
@@ -36,12 +35,11 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_notLeader_sendNoLeader() {
         long chatId = 10071L;
         long userId = 100071L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpTopic notLeader sendNoLeader");
 
         onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "not leader"));
-        verifySendMessage(chatIdStr, NOT_LEADER);
+        verifySendMessage(NOT_LEADER);
     }
 
     @Test
@@ -49,12 +47,11 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_noTopicsCreated_sendNoTopics() {
         long chatId = 10072L;
         long userId = 100072L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpTopic noTopicsCreated sendNoTopics");
 
         onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
-        verifySendMessage(chatIdStr, NO_TOPICS);
+        verifySendMessage(NO_TOPICS);
     }
 
     @Test
@@ -62,13 +59,13 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_someTopicsCreated_sendTopics() {
         long chatId = 10073L;
         long userId = 100073L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpTopic someTopicsCreated sendTopics");
         createTopic(chatId, userId, "First topic");
 
         onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
-        verifySendMessage(chatIdStr, DUMPTOPIC_ASK_FOR_TOPIC_NAME);
+        verifySendMessage(TOPICS_LIST, "1) First topic\n");
+        verifySendKeyboard(columnKeyboard("First topic"), DUMPTOPIC_ASK_FOR_TOPIC_NAME);
     }
 
     @Test
@@ -76,16 +73,16 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_nonExistingTopic_sendTopicNotFound() {
         long chatId = 10073L;
         long userId = 100073L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpTopic nonExistingTopic sendTopicNotFound");
         createTopic(chatId, userId, "First topic");
 
         onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
-        verifySendMessage(chatIdStr, DUMPTOPIC_ASK_FOR_TOPIC_NAME);
+        verifySendMessage(TOPICS_LIST, "1) First topic\n");
+        verifySendKeyboard(columnKeyboard("First topic"), DUMPTOPIC_ASK_FOR_TOPIC_NAME);
 
         onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, "Non existing topic"));
-        verifySendMessage(chatIdStr, TOPIC_NOT_FOUND);
+        verifySendKeyboard(columnKeyboard("First topic"), TOPIC_NOT_FOUND);
     }
 
     @Test
@@ -93,16 +90,16 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_emptyTopic_sendWarningMessage() {
         long chatId = 10074L;
         long userId = 100074L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpTopic emptyTopic sendWarningMessage");
         createTopic(chatId, userId, "First topic");
 
         onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
-        verifySendMessage(chatIdStr, DUMPTOPIC_ASK_FOR_TOPIC_NAME);
+        verifySendMessage(TOPICS_LIST, "1) First topic\n");
+        verifySendKeyboard(columnKeyboard("First topic"), DUMPTOPIC_ASK_FOR_TOPIC_NAME);
 
         onUpdateReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, ASK_FOR_RESENDING_TOPIC);
+        verifySendKeyboard(columnKeyboard("First topic"), ASK_FOR_RESENDING_TOPIC);
     }
 
     @Test
@@ -110,16 +107,15 @@ class DumpTopicCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpTopic_noSubmissions_sendNoSubmissionsMessage() {
         long chatId = 10075L;
         long userId = 100075L;
-        String chatIdStr = Long.toString(chatId);
-        String topic = "First topic";
 
         register(chatId, userId, "receiveDumpTopic noSubmissions sendNoSubmissionsMessage");
-        createTopic(chatId, userId, topic);
+        createTopic(chatId, userId, "First topic");
 
         onCommandReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
-        verifySendMessage(chatIdStr, DUMPTOPIC_ASK_FOR_TOPIC_NAME);
+        verifySendMessage(TOPICS_LIST, "1) First topic\n");
+        verifySendKeyboard(columnKeyboard("First topic"), DUMPTOPIC_ASK_FOR_TOPIC_NAME);
 
-        onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, topic));
-        verifySendMessage(chatIdStr, DUMPTOPIC_NO_SUBMISSIONS);
+        onUpdateReceived(commandHandler, createTextUpdate(chatId, userId, "First topic"));
+        verifySendMessage(DUMPTOPIC_NO_SUBMISSIONS);
     }
 }

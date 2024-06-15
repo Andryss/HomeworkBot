@@ -25,10 +25,9 @@ class ListUnsolvedCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveListUnsolved_notRegistered_sendRegisterFirst() {
         long chatId = 10060L;
         long userId = 100060L;
-        String chatIdStr = Long.toString(chatId);
 
         onReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, REGISTER_FIRST);
+        verifySendMessage(REGISTER_FIRST);
     }
 
     @Test
@@ -36,12 +35,11 @@ class ListUnsolvedCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveListUnsolved_noTopicsCreated_sendNoTopics() {
         long chatId = 10061L;
         long userId = 100061L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveListUnsolved noTopicsCreated sendNoTopics");
 
         onReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, LISTUNSOLVED_NO_UNSOLVED_TOPICS);
+        verifySendMessage(LISTUNSOLVED_NO_UNSOLVED_TOPICS);
     }
 
     @Test
@@ -49,7 +47,6 @@ class ListUnsolvedCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveListUnsolved_someTopicsCreated_sendTopics() {
         long chatId = 10062L;
         long userId = 100062L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveListUnsolved someTopicsCreated sendTopics");
 
@@ -57,6 +54,6 @@ class ListUnsolvedCommandHandlerTest extends CommandHandlerBaseTest {
         createTopic(chatId, userId, "Second topic");
 
         onReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, String.format(LISTUNSOLVED_UNSOVLED_TOPICS_LIST, "1) First topic\n2) Second topic\n"));
+        verifySendMessage(LISTUNSOLVED_UNSOVLED_TOPICS_LIST, "1) First topic\n2) Second topic\n");
     }
 }

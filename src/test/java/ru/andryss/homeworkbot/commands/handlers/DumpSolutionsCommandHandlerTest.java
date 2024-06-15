@@ -26,10 +26,9 @@ class DumpSolutionsCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpSolutions_notRegistered_sendRegisterFirst() {
         long chatId = 10080L;
         long userId = 100080L;
-        String chatIdStr = Long.toString(chatId);
 
         onReceived(commandHandler, createEmptyUpdate(chatId, userId));
-        verifySendMessage(chatIdStr, REGISTER_FIRST);
+        verifySendMessage(REGISTER_FIRST);
     }
 
     @Test
@@ -37,12 +36,11 @@ class DumpSolutionsCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpSolutions_notLeader_sendNoLeader() {
         long chatId = 10081L;
         long userId = 100081L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpSolutions notLeader sendNoLeader");
 
         onReceived(commandHandler, createUserUpdate(chatId, userId, "not leader"));
-        verifySendMessage(chatIdStr, NOT_LEADER);
+        verifySendMessage(NOT_LEADER);
     }
 
     @Test
@@ -50,11 +48,10 @@ class DumpSolutionsCommandHandlerTest extends CommandHandlerBaseTest {
     void receiveDumpSolutions_noTopicsCreated_sendNoTopics() {
         long chatId = 10082L;
         long userId = 100082L;
-        String chatIdStr = Long.toString(chatId);
 
         register(chatId, userId, "receiveDumpSolutions noTopicsCreated sendNoTopics");
 
         onReceived(commandHandler, createUserUpdate(chatId, userId, "God"));
-        verifySendMessage(chatIdStr, DUMPTOPIC_NO_SUBMISSIONS);
+        verifySendMessage(DUMPSOLUTIONS_NO_SUBMISSIONS);
     }
 }

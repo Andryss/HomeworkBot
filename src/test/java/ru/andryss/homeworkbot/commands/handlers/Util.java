@@ -26,6 +26,7 @@ public class Util {
         User from = new User();
         from.setId(userId);
         from.setUserName(username);
+        from.setLanguageCode("");
 
         Message message = new Message();
         message.setChat(chat);

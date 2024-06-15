@@ -7,15 +7,16 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
+import ru.andryss.homeworkbot.commands.utils.MessageUtils;
 import ru.andryss.homeworkbot.services.LeaderService;
 import ru.andryss.homeworkbot.services.TopicService;
 import ru.andryss.homeworkbot.services.UserService;
 
 import java.util.List;
+import java.util.Objects;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneColumnKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
@@ -25,13 +26,15 @@ import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKey
 public class RemoveTopicCommandHandler extends StateCommandHandler<RemoveTopicCommandHandler.UserState> {
 
     @Getter
-    private final CommandInfo commandInfo = new CommandInfo("/removetopic", "удалить домашнее задание (для старосты)");
+    private final CommandInfo commandInfo = new CommandInfo("/removetopic", COMMAND_REMOVETOPIC);
 
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_CONFIRMATION = 1;
 
     private static final List<List<String>> YES_NO_BUTTONS = buildOneRowKeyboard(YES_ANSWER, NO_ANSWER);
 
+    private final AbsSenderUtils absSenderUtils;
+    private final MessageUtils messageUtils;
     private final UserService userService;
     private final LeaderService leaderService;
     private final TopicService topicService;
@@ -52,13 +55,13 @@ public class RemoveTopicCommandHandler extends StateCommandHandler<RemoveTopicCo
         String username = update.getMessage().getFrom().getUserName();
 
         if (userService.getUserName(userId).isEmpty()) {
-            sendMessage(update, sender, REGISTER_FIRST);
+            absSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
             exitForUser(userId);
             return;
         }
 
         if (!leaderService.isLeader(username)) {
-            sendMessage(update, sender, NOT_LEADER);
+            absSenderUtils.sendMessage(update, sender, NOT_LEADER);
             exitForUser(userId);
             return;
         }
@@ -66,11 +69,11 @@ public class RemoveTopicCommandHandler extends StateCommandHandler<RemoveTopicCo
         List<String> topics = topicService.listTopics();
 
         if (topics.isEmpty()) {
-            sendMessage(update, sender, NO_TOPICS);
+            absSenderUtils.sendMessage(update, sender, NO_TOPICS);
             exitForUser(userId);
         } else {
-            sendMessage(update, sender, String.format(TOPICS_LIST, buildNumberedList(topics)));
-            sendMessageWithKeyboard(update, sender, REMOVETOPIC_ASK_FOR_TOPIC_NAME, buildOneColumnKeyboard(topics));
+            absSenderUtils.sendMessage(update, sender, TOPICS_LIST, buildNumberedList(topics));
+            absSenderUtils.sendMessageWithKeyboard(update, sender, buildOneColumnKeyboard(topics), REMOVETOPIC_ASK_FOR_TOPIC_NAME);
             putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME));
         }
     }
@@ -90,21 +93,21 @@ public class RemoveTopicCommandHandler extends StateCommandHandler<RemoveTopicCo
         List<String> topics = topicService.listTopics();
 
         if (!update.getMessage().hasText()) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildOneColumnKeyboard(topics));
+            absSenderUtils.sendMessageWithKeyboard(update, sender, buildOneColumnKeyboard(topics), ASK_FOR_RESENDING_TOPIC);
             return;
         }
 
         String topic = update.getMessage().getText();
 
         if (!topics.contains(topic)) {
-            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildOneColumnKeyboard(topics));
+            absSenderUtils.sendMessageWithKeyboard(update, sender, buildOneColumnKeyboard(topics), TOPIC_NOT_FOUND);
             return;
         }
 
         UserState userState = getUserState(userId);
         userState.setRemovedTopic(topic);
 
-        sendMessageWithKeyboard(update, sender, String.format(REMOVETOPIC_ASK_FOR_CONFIRMATION, topic), YES_NO_BUTTONS);
+        absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, REMOVETOPIC_ASK_FOR_CONFIRMATION, topic);
         userState.setState(WAITING_FOR_CONFIRMATION);
     }
 
@@ -112,19 +115,27 @@ public class RemoveTopicCommandHandler extends StateCommandHandler<RemoveTopicCo
         Long userId = update.getMessage().getFrom().getId();
         String confirmation = update.getMessage().getText();
 
-        if (!update.getMessage().hasText() || !confirmation.equals(YES_ANSWER) && !confirmation.equals(NO_ANSWER)) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_CONFIRMATION, YES_NO_BUTTONS);
+        boolean isYes = Objects.equals(confirmation, localize(update, YES_ANSWER));
+        boolean isNo = Objects.equals(confirmation, localize(update, NO_ANSWER));
+
+        if (!update.getMessage().hasText() || !isYes && !isNo) {
+            absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, ASK_FOR_RESENDING_CONFIRMATION);
             return;
         }
 
-        if (confirmation.equals(NO_ANSWER)) {
-            sendMessage(update, sender, REMOVETOPIC_CONFIRMATION_FAILURE);
+        if (isNo) {
+            absSenderUtils.sendMessage(update, sender, REMOVETOPIC_CONFIRMATION_FAILURE);
             exitForUser(userId);
             return;
         }
 
         topicService.removeTopic(getUserState(userId).getRemovedTopic());
-        sendMessage(update, sender, REMOVETOPIC_CONFIRMATION_SUCCESS);
+        absSenderUtils.sendMessage(update, sender, REMOVETOPIC_CONFIRMATION_SUCCESS);
         exitForUser(userId);
+    }
+
+    private String localize(Update update, String pattern) {
+        String lang = update.getMessage().getFrom().getLanguageCode();
+        return messageUtils.localize(lang, pattern);
     }
 }

@@ -1,6 +1,8 @@
 package ru.andryss.homeworkbot.commands.utils;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
+import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -13,17 +15,14 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.downloadFile;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendDocument;
-
 /**
  * Util class for dumping user submissions
  */
+@Component
+@RequiredArgsConstructor
 public class DumpUtils {
 
-    private DumpUtils() {
-        throw new UnsupportedOperationException("util class");
-    }
+    private final AbsSenderUtils absSenderUtils;
 
     /**
      * Sends submission dump as answer for received event
@@ -32,7 +31,7 @@ public class DumpUtils {
      * @param sender class for executing api calls
      * @param info topic submissions info
      */
-    public static void sendSolutionsDump(Update update, AbsSender sender, TopicSubmissionsInfo info) throws TelegramApiException, IOException {
+    public void sendSolutionsDump(Update update, AbsSender sender, TopicSubmissionsInfo info) throws TelegramApiException, IOException {
         File dumpDir = Files.createTempDirectory("dump").toFile();
         try {
             File zipArchive = new File(dumpDir.getAbsolutePath(), info.getTopicName() + ".zip");
@@ -40,7 +39,7 @@ public class DumpUtils {
                 throw new IOException("cant create zip archive for dump");
             }
             dump(dumpDir, zipArchive, info, sender);
-            sendDocument(update, sender, zipArchive);
+            absSenderUtils.sendDocument(update, sender, zipArchive);
         } finally {
             FileUtils.deleteQuietly(dumpDir);
         }
@@ -54,7 +53,7 @@ public class DumpUtils {
      * @param submissionsInfo info about submissions to dump
      * @param sender class for executing api calls
      */
-    private static void dump(File dumpDir, File zipArchive, TopicSubmissionsInfo submissionsInfo, AbsSender sender) throws IOException, TelegramApiException {
+    private void dump(File dumpDir, File zipArchive, TopicSubmissionsInfo submissionsInfo, AbsSender sender) throws IOException, TelegramApiException {
         List<SubmissionInfo> submissions = submissionsInfo.getSubmissions();
         if (submissions.isEmpty()) return;
 
@@ -66,8 +65,7 @@ public class DumpUtils {
                     throw new IOException("can't create file " + submissionFile.getAbsolutePath());
                 }
 
-
-                downloadFile(sender, submission.getFileId(), submissionFile);
+                absSenderUtils.downloadFile(sender, submission.getFileId(), submissionFile);
 
                 ZipEntry zipEntry = new ZipEntry(submissionFilename);
                 zos.putNextEntry(zipEntry);
@@ -83,7 +81,7 @@ public class DumpUtils {
      * @param from source file
      * @param to target stream
      */
-    private static void write(File from, OutputStream to) throws IOException {
+    private void write(File from, OutputStream to) throws IOException {
         try (FileInputStream fis = new FileInputStream(from)) {
             byte[] buffer = new byte[1024];
             int len;

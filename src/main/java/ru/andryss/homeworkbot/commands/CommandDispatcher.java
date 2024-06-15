@@ -2,6 +2,7 @@ package ru.andryss.homeworkbot.commands;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +15,14 @@ import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.commands.handlers.CommandHandler;
 import ru.andryss.homeworkbot.commands.handlers.SingleActionCommandHandler;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
+import ru.andryss.homeworkbot.commands.utils.MessageUtils;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 /**
  * Entrypoint for all received events.
@@ -38,21 +40,28 @@ public class CommandDispatcher extends TelegramLongPollingBot {
     private final Map<Long, String> userToCommand = new ConcurrentHashMap<>();
 
     private static final String NO_COMMAND = "";
+    
+    private final AbsSenderUtils absSenderUtils;
+    private final MessageUtils messageUtils;
 
     public CommandDispatcher(
             @Value("${bot.telegram.api.token}") String botToken,
             @Value("${bot.telegram.username}") String botUsername,
-            @Autowired List<CommandHandler> commandHandlers
+            @Autowired List<CommandHandler> commandHandlers,
+            @Autowired AbsSenderUtils absSenderUtils,
+            @Autowired MessageUtils messageUtils
     ) {
         super(botToken);
         this.botUsername = botUsername;
         this.commandHandlers = commandHandlers;
+        this.absSenderUtils = absSenderUtils;
+        this.messageUtils = messageUtils;
     }
 
     @PostConstruct
     private void init() {
         commandHandlers.forEach(handler -> handlerByCommand.put(handler.getCommandInfo().getName(), handler));
-        handlerByCommand.put("/help", new HelpCommandHandler(commandHandlers));
+        handlerByCommand.put("/help", new HelpCommandHandler(absSenderUtils, messageUtils, commandHandlers));
     }
 
     @Override
@@ -73,7 +82,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
                 String userCommand = userToCommand.computeIfAbsent(userId, id -> NO_COMMAND);
                 if (userCommand.equals(NO_COMMAND)) {
                     log.warn("No command update {}", update.getUpdateId());
-                    sendMessage(update, this, DISPATCHER_NO_COMMAND);
+                    absSenderUtils.sendMessage(update, this, DISPATCHER_NO_COMMAND);
                     return;
                 }
 
@@ -81,7 +90,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
                     handlerByCommand.get(userCommand).onUpdateReceived(update, this);
                 } catch (Exception e) {
                     log.error(String.format("Exception during update %s", update.getUpdateId()), e);
-                    sendMessage(update, this, DISPATCHER_HANDLER_ERROR);
+                    absSenderUtils.sendMessage(update, this, DISPATCHER_HANDLER_ERROR);
                 }
                 return;
             }
@@ -89,7 +98,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
             CommandHandler commandHandler = handlerByCommand.get(command);
             if (commandHandler == null) {
                 log.warn("Unknown command {} update {}", command, update.getUpdateId());
-                sendMessage(update, this, DISPATCHER_UNKNOWN_COMMAND);
+                absSenderUtils.sendMessage(update, this, DISPATCHER_UNKNOWN_COMMAND);
                 return;
             }
 
@@ -100,7 +109,7 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         } catch (Exception e) {
             log.error(String.format("Unhandled exception during update %s", update.getUpdateId()), e);
             try {
-                sendMessage(update, this, DISPATCHER_ERROR);
+                absSenderUtils.sendMessage(update, this, DISPATCHER_ERROR);
             } catch (TelegramApiException ex) {
                 // sadness :(
             }
@@ -117,29 +126,31 @@ public class CommandDispatcher extends TelegramLongPollingBot {
         return NO_COMMAND;
     }
 
+    @RequiredArgsConstructor
     private static class HelpCommandHandler extends SingleActionCommandHandler {
 
         @Getter
-        private final CommandInfo commandInfo = new CommandInfo("/help", "вывести список всех команд");
-        private final String helpMessage;
+        private final CommandInfo commandInfo = new CommandInfo("/help", COMMAND_HELP);
 
-        HelpCommandHandler(List<CommandHandler> commandHandlers) {
-            this.helpMessage = initHelpMessage(commandHandlers);
-        }
-
-        private String initHelpMessage(List<CommandHandler> commandHandlers) {
-            StringBuilder helpMessageBuilder = new StringBuilder();
-            helpMessageBuilder.append(commandInfo.getName()).append(" - ").append(commandInfo.getDescription()).append('\n');
-            commandHandlers.forEach(handler -> {
-                CommandHandler.CommandInfo info = handler.getCommandInfo();
-                helpMessageBuilder.append(info.getName()).append(" - ").append(info.getDescription()).append('\n');
-            });
-            return helpMessageBuilder.toString();
-        }
+        private final AbsSenderUtils absSenderUtils;
+        private final MessageUtils messageUtils;
+        private final List<CommandHandler> commandHandlers;
 
         @Override
         protected void onReceived(Update update, AbsSender sender) throws TelegramApiException {
-            sendMessage(update, sender, helpMessage);
+            String lang = update.getMessage().getFrom().getLanguageCode();
+
+            StringBuilder helpMessage = new StringBuilder();
+            String helpDescription = messageUtils.localize(lang, commandInfo.getDescription());
+            helpMessage.append(commandInfo.getName()).append(" - ").append(helpDescription).append('\n');
+
+            commandHandlers.forEach(handler -> {
+                CommandHandler.CommandInfo info = handler.getCommandInfo();
+                String description = messageUtils.localize(lang, info.getDescription());
+                helpMessage.append(info.getName()).append(" - ").append(description).append('\n');
+            });
+
+            absSenderUtils.sendMessage(update, sender, helpMessage.toString());
         }
     }
 }

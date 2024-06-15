@@ -9,19 +9,18 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 import ru.andryss.homeworkbot.services.UserService;
 
-
 import java.util.Optional;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
 @RequiredArgsConstructor
 public class WhoAmICommandHandler extends SingleActionCommandHandler {
 
     @Getter
-    private final CommandInfo commandInfo = new CommandInfo("/whoami", "вывести информацию о пользователе");
+    private final CommandInfo commandInfo = new CommandInfo("/whoami", COMMAND_WHOAMI);
 
+    private final AbsSenderUtils absSenderUtils;
     private final UserService userService;
 
 
@@ -31,9 +30,9 @@ public class WhoAmICommandHandler extends SingleActionCommandHandler {
         Optional<String> userName = userService.getUserName(userId);
 
         if (userName.isEmpty()) {
-            sendMessage(update, sender, REGISTER_FIRST);
+            absSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
         } else {
-            sendMessage(update, sender, String.format(WHOAMI_ANSWER, userName.get()));
+            absSenderUtils.sendMessage(update, sender, WHOAMI_ANSWER, userName.get());
         }
     }
 }

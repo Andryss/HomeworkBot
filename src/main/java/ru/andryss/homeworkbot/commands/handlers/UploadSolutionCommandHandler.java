@@ -25,6 +25,8 @@ import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
+import ru.andryss.homeworkbot.commands.utils.MessageUtils;
 import ru.andryss.homeworkbot.services.SubmissionService;
 import ru.andryss.homeworkbot.services.UserService;
 
@@ -34,7 +36,6 @@ import java.util.*;
 
 import static com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED;
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.*;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneColumnKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
@@ -45,7 +46,7 @@ import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKey
 public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolutionCommandHandler.UserState> {
 
     @Getter
-    private final CommandInfo commandInfo = new CommandInfo("/uploadsolution", "загрузить решение домашнего задания");
+    private final CommandInfo commandInfo = new CommandInfo("/uploadsolution", COMMAND_UPLOADSOLUTION);
 
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_SUBMISSION = 1;
@@ -59,6 +60,8 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
     @Value("${user.submission.size.limit.mb}")
     private long sizeLimitMb;
 
+    private final AbsSenderUtils absSenderUtils;
+    private final MessageUtils messageUtils;
     private final UserService userService;
     private final SubmissionService submissionService;
 
@@ -83,22 +86,22 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         Long userId = update.getMessage().getFrom().getId();
 
         if (userService.getUserName(userId).isEmpty()) {
-            sendMessage(update, sender, REGISTER_FIRST);
+            absSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
             exitForUser(userId);
             return;
         }
 
         Map<String, String> availableTopics = submissionService.listAvailableTopics(userId);
         if (availableTopics.isEmpty()) {
-            sendMessage(update, sender, UPLOADSOLUTION_NO_AVAILABLE_TOPICS);
+            absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_NO_AVAILABLE_TOPICS);
             exitForUser(userId);
             return;
         }
 
         List<String> topicNames = new ArrayList<>(availableTopics.keySet());
 
-        sendMessage(update, sender, String.format(UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, buildNumberedList(topicNames)));
-        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_TOPIC_NAME, buildOneColumnKeyboard(topicNames));
+        absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_AVAILABLE_TOPICS_LIST, buildNumberedList(topicNames));
+        absSenderUtils.sendMessageWithKeyboard(update, sender, buildOneColumnKeyboard(topicNames), UPLOADSOLUTION_ASK_FOR_TOPIC_NAME);
 
         putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME, availableTopics));
     }
@@ -121,22 +124,22 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         List<String> topicNames = new ArrayList<>(availableTopics.keySet());
 
         if (!update.getMessage().hasText()) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_TOPIC, buildOneColumnKeyboard(topicNames));
+            absSenderUtils.sendMessageWithKeyboard(update, sender, buildOneColumnKeyboard(topicNames), ASK_FOR_RESENDING_TOPIC);
             return;
         }
 
         String topic = update.getMessage().getText();
 
         if (!availableTopics.containsKey(topic)) {
-            sendMessageWithKeyboard(update, sender, TOPIC_NOT_FOUND, buildOneColumnKeyboard(topicNames));
+            absSenderUtils.sendMessageWithKeyboard(update, sender, buildOneColumnKeyboard(topicNames), TOPIC_NOT_FOUND);
             return;
         }
 
         userState.setUploadedTopicName(topic);
         userState.setUploadedTopic(availableTopics.get(topic));
 
-        sendMessage(update, sender, UPLOADSOLUTION_SUBMISSION_RULES);
-        sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_ASK_FOR_SUBMISSION, STOP_WORD_BUTTON);
+        absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_SUBMISSION_RULES);
+        absSenderUtils.sendMessageWithKeyboard(update, sender, STOP_WORD_BUTTON, UPLOADSOLUTION_ASK_FOR_SUBMISSION);
 
         userState.setState(WAITING_FOR_SUBMISSION);
     }
@@ -150,9 +153,9 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         }
         List<PdfTranslator> submissions = userState.getUploadedParts();
 
-        if (update.getMessage().hasText() && update.getMessage().getText().equals(STOP_WORD)) {
+        if (update.getMessage().hasText() && update.getMessage().getText().equals(localize(update, STOP_WORD))) {
             if (submissions.size() == 0) {
-                sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_EMPTY_SUBMISSION, STOP_WORD_BUTTON);
+                absSenderUtils.sendMessageWithKeyboard(update, sender, STOP_WORD_BUTTON, UPLOADSOLUTION_EMPTY_SUBMISSION);
                 return;
             }
             handleSubmissions(update, sender);
@@ -162,7 +165,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         if (update.getMessage().hasDocument()) {
             Document document = update.getMessage().getDocument();
             if (document.getFileSize() > sizeLimitMb * 1024 * 1024) {
-                sendMessage(update, sender, String.format(UPLOADSOLUTION_TOO_LARGE_FILE, sizeLimitMb));
+                absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_TOO_LARGE_FILE, sizeLimitMb);
                 return;
             }
             if (document.getMimeType().startsWith("image")) {
@@ -173,7 +176,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
                 submissions.add(new DocxPdfTranslator(document.getFileId(), sender));
             } else {
                 if (submissions.size() > 0) {
-                    sendMessageWithKeyboard(update, sender, UPLOADSOLUTION_INCORRECT_COMBINATION, STOP_WORD_BUTTON);
+                    absSenderUtils.sendMessageWithKeyboard(update, sender, STOP_WORD_BUTTON, UPLOADSOLUTION_INCORRECT_COMBINATION);
                     return;
                 }
                 handleSimpleSubmission(update, sender);
@@ -197,7 +200,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
     }
 
     private void handleSubmissions(Update update, AbsSender sender) throws TelegramApiException {
-        sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
+        absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
 
         Long userId = update.getMessage().getFrom().getId();
         UserState userState = getUserState(userId);
@@ -225,15 +228,15 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
 
             long size = submission.length();
             if (size > sizeLimitMb * 1024 * 1024) {
-                sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, sizeLimitMb), STOP_WORD_BUTTON);
+                absSenderUtils.sendMessageWithKeyboard(update, sender, STOP_WORD_BUTTON, UPLOADSOLUTION_TOO_LARGE_MERGED_FILE, sizeLimitMb);
                 userState.getUploadedParts().clear();
                 return;
             }
 
-            submissionFileId = sendDocument(update, sender, submission).getDocument().getFileId();
+            submissionFileId = absSenderUtils.sendDocument(update, sender, submission).getDocument().getFileId();
         } catch (IOException e) {
             log.error("error occurred while handling user submission", e);
-            sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
+            absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
             userState.getUploadedParts().clear();
             return;
         } finally {
@@ -243,13 +246,13 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         userState.setUploadedFile(submissionFileId);
         userState.setUploadedFileExtension(".pdf");
 
-        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopicName()), YES_NO_BUTTONS);
+        absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopicName());
 
         userState.setState(WAITING_FOR_CONFIRMATION);
     }
 
     private void handleSimpleSubmission(Update update, AbsSender sender) throws TelegramApiException {
-        sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
+        absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_LOADING_SUBMISSION);
 
         Long userId = update.getMessage().getFrom().getId();
         String userName = userService.getUserName(userId).orElseThrow();
@@ -265,12 +268,12 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
 
             File submission = new File(tmpDir.getAbsolutePath(), userName + extension);
 
-            downloadFile(sender, document.getFileId(), submission);
+            absSenderUtils.downloadFile(sender, document.getFileId(), submission);
 
-            submissionFileId = sendDocument(update, sender, submission).getDocument().getFileId();
+            submissionFileId = absSenderUtils.sendDocument(update, sender, submission).getDocument().getFileId();
         } catch (IOException e) {
             log.error("error occurred while handling user submission", e);
-            sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
+            absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_ERROR_OCCURED);
             return;
         } finally {
             FileUtils.deleteQuietly(tmpDir);
@@ -280,7 +283,7 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         userState.setUploadedFile(submissionFileId);
         userState.setUploadedFileExtension(extension);
 
-        sendMessageWithKeyboard(update, sender, String.format(UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopicName()), YES_NO_BUTTONS);
+        absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, UPLOADSOLUTION_ASK_FOR_CONFIRMATION, userState.getUploadedTopicName());
 
         userState.setState(WAITING_FOR_CONFIRMATION);
     }
@@ -289,22 +292,29 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         Long userId = update.getMessage().getFrom().getId();
         String confirmation = update.getMessage().getText();
 
-        if (!update.getMessage().hasText() || !confirmation.equals(YES_ANSWER) && !confirmation.equals(NO_ANSWER)) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_CONFIRMATION, YES_NO_BUTTONS);
+        boolean isYes = Objects.equals(confirmation, localize(update, YES_ANSWER));
+        boolean isNo = Objects.equals(confirmation, localize(update, NO_ANSWER));
+
+        if (!update.getMessage().hasText() || !isYes && !isNo) {
+            absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, ASK_FOR_RESENDING_CONFIRMATION);
             return;
         }
 
-
-        if (confirmation.equals(NO_ANSWER)) {
-            sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_FAILURE);
+        if (isNo) {
+            absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_FAILURE);
             exitForUser(userId);
             return;
         }
 
         UserState userState = getUserState(userId);
         submissionService.uploadSubmission(userId, userState.getUploadedTopic(), userState.getUploadedFile(), userState.getUploadedFileExtension());
-        sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_SUCCESS);
+        absSenderUtils.sendMessage(update, sender, UPLOADSOLUTION_CONFIRMATION_SUCCESS);
         exitForUser(userId);
+    }
+
+    private String localize(Update update, String pattern) {
+        String lang = update.getMessage().getFrom().getLanguageCode();
+        return messageUtils.localize(lang, pattern);
     }
 
     /**
@@ -336,13 +346,18 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         }
     }
 
-    private record PhotoPdfTranslator(String photoId, AbsSender sender) implements PdfTranslator {
+    @RequiredArgsConstructor
+    private class PhotoPdfTranslator implements PdfTranslator {
+
+        private final String photoId;
+        private final AbsSender sender;
+
         @Override
         public void translate(File destination) throws TelegramApiException, IOException {
             File photo = null;
             try {
                 photo = File.createTempFile("photo", "");
-                downloadFile(sender, photoId, photo);
+                absSenderUtils.downloadFile(sender, photoId, photo);
 
                 ImageData imageData = ImageDataFactory.create(photo.getAbsolutePath());
 
@@ -362,20 +377,30 @@ public class UploadSolutionCommandHandler extends StateCommandHandler<UploadSolu
         }
     }
 
-    private record PdfPdfTranslator(String fileId, AbsSender sender) implements PdfTranslator {
+    @RequiredArgsConstructor
+    private class PdfPdfTranslator implements PdfTranslator {
+
+        private final String fileId;
+        private final AbsSender sender;
+
         @Override
         public void translate(File destination) throws TelegramApiException {
-            downloadFile(sender, fileId, destination);
+            absSenderUtils.downloadFile(sender, fileId, destination);
         }
     }
 
-    private record DocxPdfTranslator(String fileId, AbsSender sender) implements PdfTranslator {
+    @RequiredArgsConstructor
+    private class DocxPdfTranslator implements PdfTranslator {
+
+        private final String fileId;
+        private final AbsSender sender;
+
         @Override
         public void translate(File destination) throws TelegramApiException, IOException {
             File docx = null;
             try {
                 docx = File.createTempFile("docx", ".docx");
-                downloadFile(sender, fileId, docx);
+                absSenderUtils.downloadFile(sender, fileId, docx);
 
                 XWPFDocument document = new XWPFDocument(new FileInputStream(docx));
                 PdfOptions options = PdfOptions.create();

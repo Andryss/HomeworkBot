@@ -7,16 +7,17 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
+import ru.andryss.homeworkbot.commands.utils.MessageUtils;
 import ru.andryss.homeworkbot.services.LeaderService;
 import ru.andryss.homeworkbot.services.TopicService;
 import ru.andryss.homeworkbot.services.UserService;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessageWithKeyboard;
 import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKeyboard;
 
 @SuppressWarnings("DuplicatedCode")
@@ -25,15 +26,17 @@ import static ru.andryss.homeworkbot.commands.utils.KeyboardUtils.buildOneRowKey
 public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCommandHandler.UserState> {
 
     @Getter
-    private final CommandInfo commandInfo = new CommandInfo("/createtopic", "добавить домашнее задание (для старосты)");
+    private final CommandInfo commandInfo = new CommandInfo("/createtopic", COMMAND_CREATETOPIC);
 
-    private static final Pattern topicPattern = Pattern.compile("[\\p{L}\\d _\\-]+");
+    private static final Pattern topicPattern = Pattern.compile("[\\p{L}\\d _\\-]+"); // "." symbol must be forbidden to avoid localization
 
     private static final int WAITING_FOR_TOPIC_NAME = 0;
     private static final int WAITING_FOR_CONFIRMATION = 1;
 
     private static final List<List<String>> YES_NO_BUTTONS = buildOneRowKeyboard(YES_ANSWER, NO_ANSWER);
 
+    private final AbsSenderUtils absSenderUtils;
+    private final MessageUtils messageUtils;
     private final UserService userService;
     private final LeaderService leaderService;
     private final TopicService topicService;
@@ -54,18 +57,18 @@ public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCo
         String username = update.getMessage().getFrom().getUserName();
 
         if (userService.getUserName(userId).isEmpty()) {
-            sendMessage(update, sender, REGISTER_FIRST);
+            absSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
             exitForUser(userId);
             return;
         }
 
         if (!leaderService.isLeader(username)) {
-            sendMessage(update, sender, NOT_LEADER);
+            absSenderUtils.sendMessage(update, sender, NOT_LEADER);
             exitForUser(userId);
             return;
         }
 
-        sendMessage(update, sender, CREATETOPIC_ASK_FOR_TOPIC_NAME);
+        absSenderUtils.sendMessage(update, sender, CREATETOPIC_ASK_FOR_TOPIC_NAME);
         putUserState(userId, new UserState(WAITING_FOR_TOPIC_NAME));
     }
 
@@ -83,31 +86,31 @@ public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCo
         Long userId = update.getMessage().getFrom().getId();
 
         if (!update.getMessage().hasText()) {
-            sendMessage(update, sender, ASK_FOR_RESENDING_TOPIC);
+            absSenderUtils.sendMessage(update, sender, ASK_FOR_RESENDING_TOPIC);
             return;
         }
 
         String topic = update.getMessage().getText().trim();
 
         if (!topicPattern.matcher(topic).matches()) {
-            sendMessage(update, sender, CREATETOPIC_TOPIC_ILLEGAL_CHARACTERS);
+            absSenderUtils.sendMessage(update, sender, CREATETOPIC_TOPIC_ILLEGAL_CHARACTERS);
             return;
         }
 
         if (topic.length() > 200) {
-            sendMessage(update, sender, CREATETOPIC_TOPIC_TOO_MANY_CHARACTERS);
+            absSenderUtils.sendMessage(update, sender, CREATETOPIC_TOPIC_TOO_MANY_CHARACTERS);
             return;
         }
 
         if (topicService.topicExists(topic)) {
-            sendMessage(update, sender, CREATETOPIC_TOPIC_ALREADY_EXIST);
+            absSenderUtils.sendMessage(update, sender, CREATETOPIC_TOPIC_ALREADY_EXIST);
             return;
         }
 
         UserState userState = getUserState(userId);
         userState.setCreatedTopic(topic);
 
-        sendMessageWithKeyboard(update, sender, String.format(CREATETOPIC_ASK_FOR_CONFIRMATION, topic), YES_NO_BUTTONS);
+        absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, CREATETOPIC_ASK_FOR_CONFIRMATION, topic);
         userState.setState(WAITING_FOR_CONFIRMATION);
     }
 
@@ -115,20 +118,28 @@ public class CreateTopicCommandHandler extends StateCommandHandler<CreateTopicCo
         Long userId = update.getMessage().getFrom().getId();
         String confirmation = update.getMessage().getText();
 
-        if (!update.getMessage().hasText() || !confirmation.equals(YES_ANSWER) && !confirmation.equals(NO_ANSWER)) {
-            sendMessageWithKeyboard(update, sender, ASK_FOR_RESENDING_CONFIRMATION, YES_NO_BUTTONS);
+        boolean isYes = Objects.equals(confirmation, localize(update, YES_ANSWER));
+        boolean isNo = Objects.equals(confirmation, localize(update, NO_ANSWER));
+
+        if (!update.getMessage().hasText() || !isYes && !isNo) {
+            absSenderUtils.sendMessageWithKeyboard(update, sender, YES_NO_BUTTONS, ASK_FOR_RESENDING_CONFIRMATION);
             return;
         }
 
 
-        if (confirmation.equals(NO_ANSWER)) {
-            sendMessage(update, sender, CREATETOPIC_CONFIRMATION_FAILURE);
+        if (isNo) {
+            absSenderUtils.sendMessage(update, sender, CREATETOPIC_CONFIRMATION_FAILURE);
             exitForUser(userId);
             return;
         }
 
         topicService.createTopic(userId, getUserState(userId).getCreatedTopic());
-        sendMessage(update, sender, CREATETOPIC_CONFIRMATION_SUCCESS);
+        absSenderUtils.sendMessage(update, sender, CREATETOPIC_CONFIRMATION_SUCCESS);
         exitForUser(userId);
+    }
+
+    private String localize(Update update, String pattern) {
+        String lang = update.getMessage().getFrom().getLanguageCode();
+        return messageUtils.localize(lang, pattern);
     }
 }

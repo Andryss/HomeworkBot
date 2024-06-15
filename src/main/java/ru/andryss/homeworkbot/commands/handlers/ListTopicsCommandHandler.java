@@ -6,21 +6,22 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.andryss.homeworkbot.commands.utils.AbsSenderUtils;
 import ru.andryss.homeworkbot.services.TopicService;
 import ru.andryss.homeworkbot.services.UserService;
 
 import java.util.List;
 
 import static ru.andryss.homeworkbot.commands.Messages.*;
-import static ru.andryss.homeworkbot.commands.utils.AbsSenderUtils.sendMessage;
 
 @Component
 @RequiredArgsConstructor
 public class ListTopicsCommandHandler extends SingleActionCommandHandler {
 
     @Getter
-    private final CommandInfo commandInfo = new CommandInfo("/listtopics", "вывести список всех домашних заданий");
+    private final CommandInfo commandInfo = new CommandInfo("/listtopics", COMMAND_LISTTOPICS);
 
+    private final AbsSenderUtils absSenderUtils;
     private final TopicService topicService;
     private final UserService userService;
 
@@ -30,7 +31,7 @@ public class ListTopicsCommandHandler extends SingleActionCommandHandler {
         Long userId = update.getMessage().getFrom().getId();
 
         if (userService.getUserName(userId).isEmpty()) {
-            sendMessage(update, sender, REGISTER_FIRST);
+            absSenderUtils.sendMessage(update, sender, REGISTER_FIRST);
             exitForUser(userId);
             return;
         }
@@ -38,9 +39,9 @@ public class ListTopicsCommandHandler extends SingleActionCommandHandler {
         List<String> topics = topicService.listTopics();
 
         if (topics.isEmpty()) {
-            sendMessage(update, sender, NO_TOPICS);
+            absSenderUtils.sendMessage(update, sender, NO_TOPICS);
         } else {
-            sendMessage(update, sender, String.format(TOPICS_LIST, buildNumberedList(topics)));
+            absSenderUtils.sendMessage(update, sender, TOPICS_LIST, buildNumberedList(topics));
         }
     }
 }
